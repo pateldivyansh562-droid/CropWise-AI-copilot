@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>{{ land.name }} – Kisan AI</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;700&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="/manage-lands/static/css/lands.css"/>
+</head>
+<body>
+
+<nav class="topnav">
+  <a href="/" class="nav-brand">🌾 Kisan AI</a>
+  <div class="nav-links">
+    <a href="/assistant">AI Sahayak</a>
+    <a href="/manage-lands" class="active">Mere Khet</a>
+  </div>
+</nav>
+
+<div class="page">
+
+  <a href="/manage-lands" class="back-link">← Mere Khet</a>
+
+  <div class="detail-header">
+    <div class="detail-header-left">
+      <div class="crop-pill">🌱 {{ land.crop_name }}</div>
+      <h1>{{ land.name }}</h1>
+      <div class="detail-meta">
+        {% if land.sowing_date %}<span>🗓️ Boya: {{ land.sowing_date }}</span>{% endif %}
+        {% if land.last_watered %}<span>💧 Aakhri paani: {{ land.last_watered }}</span>{% endif %}
+        {% if land.watering_freq %}<span>⏱️ {{ land.watering_freq }}</span>{% endif %}
+      </div>
+    </div>
+    <div class="detail-header-actions">
+      <div class="lang-toggle-detail">
+        <button class="ltbtn {% if land.lang == 'hi' or not land.lang %}active{% endif %}" id="lt-hi" onclick="setLang('hi')">🇮🇳 हि</button>
+        <button class="ltbtn {% if land.lang == 'en' %}active{% endif %}" id="lt-en" onclick="setLang('en')">🇬🇧 EN</button>
+      </div>
+      <button class="btn-refresh" onclick="regenerate()">↺ Nai Salah Lo</button>
+    </div>
+  </div>
+
+  <!-- Weather row -->
+  {% if weather and not weather.error %}
+  <div class="weather-strip compact">
+    <span class="w-city-label">📍 {{ weather.city }}</span>
+    <div class="weather-days">
+      {% for day in weather.forecast %}
+      <div class="wday">
+        <div class="wday-date">{{ 'Aaj' if loop.first else day.date[5:] }}</div>
+        <img class="wday-icon" src="https://openweathermap.org/img/wn/{{ day.icon }}.png" alt="{{ day.desc }}"/>
+        <div class="wday-temp">{{ day.temp }}°C</div>
+        <div class="wday-hum">💧{{ day.humidity }}%</div>
+        {% if day.rain > 0 %}<div class="wday-rain">🌧️</div>{% endif %}
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- AI SUGGESTIONS AREA -->
+  <div class="suggest-area" id="suggest-area">
+
+    <!-- Loading state -->
+    <div id="suggest-loading" class="suggest-loading-state">
+      <div class="suggest-spinner"></div>
+      <div>
+        <div class="suggest-loading-title">AI salah taiyar ho rahi hai…</div>
+        <div class="suggest-loading-sub">{{ land.crop_name }} aur mausam ke hisaab se soch raha hun…</div>
+      </div>
+    </div>
+
+    <!-- Error state -->
+    <div id="suggest-error" class="suggest-error-state" style="display:none;">
+      <div class="suggest-error-icon">⚠️</div>
+      <div id="suggest-error-text">Kuch gadbad hui</div>
+      <button class="btn-primary" onclick="regenerate()">Dobara Koshish Karo</button>
+    </div>
+
+    <!-- Result state -->
+    <div id="suggest-result" style="display:none;">
+
+      <!-- Summary banner -->
+      <div class="summary-banner" id="summary-banner"></div>
+
+      <!-- 5-day plan -->
+      <div class="plan-title">📅 5 Din Ki Yojana</div>
+      <div class="days-list" id="days-list"></div>
+
+      <!-- Important tip -->
+      <div class="tip-box" id="tip-box" style="display:none;">
+        <div class="tip-label">💡 Yaad Rakhen</div>
+        <div class="tip-text" id="tip-text"></div>
+      </div>
+
+    </div>
+
+  </div><!-- /suggest-area -->
+
+  {% if land.notes %}
+  <div class="notes-strip">
+    <span>📝 Aapki tippani:</span> {{ land.notes }}
+  </div>
+  {% endif %}
+
+</div>
+
+<script>
+const LAND_ID     = "{{ land.id }}";
+const CROP        = "{{ land.crop_name }}";
+const LAND_LANG   = "{{ land.lang or 'hi' }}";
+let   activeLang  = LAND_LANG;
+
+// ── Lang toggle ────────────────────────────────────────────────────────────────
+function setLang(lang) {
+  activeLang = lang;
+  document.getElementById('lt-hi').classList.toggle('active', lang === 'hi');
+  document.getElementById('lt-en').classList.toggle('active', lang === 'en');
+  regenerate();
+}
+
+// ── States ─────────────────────────────────────────────────────────────────────
+function showLoading() {
+  document.getElementById('suggest-loading').style.display = 'flex';
+  document.getElementById('suggest-error').style.display   = 'none';
+  document.getElementById('suggest-result').style.display  = 'none';
+  const sub = document.querySelector('.suggest-loading-sub');
+  if (sub) sub.textContent = activeLang === 'hi'
+    ? `${CROP} aur mausam ke hisaab se soch raha hun…`
+    : `Analysing ${CROP} and weather data…`;
+}
+
+function showError(msg) {
+  document.getElementById('suggest-loading').style.display  = 'none';
+  document.getElementById('suggest-error').style.display    = 'flex';
+  document.getElementById('suggest-result').style.display   = 'none';
+  document.getElementById('suggest-error-text').textContent = msg;
+}
+
+function showResult(data) {
+  document.getElementById('suggest-loading').style.display = 'none';
+  document.getElementById('suggest-error').style.display   = 'none';
+  document.getElementById('suggest-result').style.display  = 'block';
+
+  // Summary
+  const banner = document.getElementById('summary-banner');
+  banner.textContent = data.summary || '';
+
+  // Days
+  const daysList = document.getElementById('days-list');
+  daysList.innerHTML = '';
+  (data.days || []).forEach(d => {
+    const card = document.createElement('div');
+    card.className = d.nothing_to_do ? 'day-card rest' : 'day-card active';
+
+    if (d.nothing_to_do) {
+      card.innerHTML = `
+        <div class="day-header">
+          <span class="day-name">${escHtml(d.day)}</span>
+          <span class="day-badge rest-badge">😌 ${activeLang === 'hi' ? 'Aaram ka din' : 'Rest day'}</span>
+        </div>
+        <div class="day-nothing">${activeLang === 'hi' ? 'Aaj kuch karne ki zaroorat nahi hai.' : 'Nothing needs to be done today.'}</div>`;
+    } else {
+      const taskItems = (d.tasks || []).map(t =>
+        `<li class="task-item"><span class="task-dot"></span>${escHtml(t)}</li>`
+      ).join('');
+      card.innerHTML = `
+        <div class="day-header">
+          <span class="day-name">${escHtml(d.day)}</span>
+          <span class="day-badge work-badge">${d.tasks.length} ${activeLang === 'hi' ? 'kaam' : 'task' + (d.tasks.length !== 1 ? 's' : '')}</span>
+        </div>
+        <ul class="task-list">${taskItems}</ul>`;
+    }
+    daysList.appendChild(card);
+  });
+
+  // Tip
+  if (data.important_tip) {
+    document.getElementById('tip-box').style.display = 'block';
+    document.getElementById('tip-text').textContent  = data.important_tip;
+  }
+}
+
+// ── Streaming + JSON parse ─────────────────────────────────────────────────────
+async function regenerate() {
+  showLoading();
+  let accum = '';
+
+  try {
+    const resp = await fetch('/manage-lands/api/suggest/stream', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ land_id: LAND_ID, lang: activeLang }),
+    });
+
+    if (!resp.ok) { showError(`Server error ${resp.status}`); return; }
+
+    const reader  = resp.body.getReader();
+    const decoder = new TextDecoder('utf-8');
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      const chunk = decoder.decode(value, { stream: true });
+      for (const line of chunk.split('\n')) {
+        if (!line.startsWith('data: ')) continue;
+        let evt;
+        try { evt = JSON.parse(line.slice(6)); } catch { continue; }
+        if (evt.error) { showError(evt.error); return; }
+        if (evt.token) accum += evt.token;
+        if (evt.done) {
+          // Parse the JSON that Ollama returned
+          const parsed = safeParseJSON(accum);
+          if (parsed) {
+            showResult(parsed);
+          } else {
+            // Fallback: show raw text if JSON fails
+            showResult({
+              summary: activeLang === 'hi' ? 'AI se jawab mila:' : 'AI Response:',
+              days: [],
+              important_tip: stripJSON(accum),
+            });
+          }
+        }
+      }
+    }
+  } catch(e) {
+    showError(activeLang === 'hi'
+      ? 'Server se connect nahi ho pa raha. Kya FastAPI chal raha hai?'
+      : 'Could not reach server. Is FastAPI running?');
+  }
+}
+
+function safeParseJSON(raw) {
+  // Try to extract JSON from the accumulated text
+  const cleaned = raw.trim();
+  // Try direct parse
+  try { return JSON.parse(cleaned); } catch {}
+  // Try extracting from markdown code block
+  const match = cleaned.match(/```(?:json)?\s*([\s\S]+?)```/);
+  if (match) try { return JSON.parse(match[1].trim()); } catch {}
+  // Try finding { ... } block
+  const start = cleaned.indexOf('{');
+  const end   = cleaned.lastIndexOf('}');
+  if (start !== -1 && end !== -1) try { return JSON.parse(cleaned.slice(start, end + 1)); } catch {}
+  return null;
+}
+
+function stripJSON(text) {
+  return text.replace(/```[\s\S]*?```/g, '').replace(/[{}\[\]"]/g, '').trim().slice(0, 300);
+}
+
+function escHtml(t) {
+  return String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+window.addEventListener('DOMContentLoaded', regenerate);
+</script>
+<script src="/manage-lands/static/js/lands.js"></script>
+</body>
+</html>

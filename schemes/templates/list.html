@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Govt Schemes — Kisan AI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Mulish:wght@300;400;600;700;800&family=Tiro+Devanagari+Hindi&display=swap" rel="stylesheet"/>
+<style>
+:root {
+  --bg:      #f8f4ef;
+  --card:    #ffffff;
+  --ink:     #1a1209;
+  --muted:   #7a6f63;
+  --line:    #e8e0d5;
+  --saffron: #e8620a;
+  --green:   #2d6a2d;
+  --gold:    #c8890a;
+  --r: 16px;
+  --sh: 0 2px 12px rgba(26,18,9,.07), 0 1px 3px rgba(26,18,9,.05);
+  --shl: 0 12px 40px rgba(26,18,9,.14);
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: 'Mulish', sans-serif;
+  min-height: 100vh;
+  background-image:
+    radial-gradient(ellipse 100% 50% at 50% -10%, #e8620a0a, transparent);
+}
+
+/* ── NAV ── */
+.nav {
+  background: var(--ink);
+  display: flex; align-items: center;
+  padding: 0 28px; height: 52px; gap: 14px;
+  position: sticky; top: 0; z-index: 100;
+}
+.nav-logo {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 1.35rem; letter-spacing: .06em;
+  color: #f5e6c8; display: flex; align-items: center; gap: 7px;
+}
+.nav-sep { width: 1px; height: 20px; background: #ffffff20; }
+.nav-sub { font-size: .78rem; color: #b8a898; font-weight: 300; }
+.nav-back {
+  margin-left: auto; color: #b8a898;
+  text-decoration: none; font-size: .78rem;
+  padding: 5px 14px; border: 1px solid #ffffff18;
+  border-radius: 20px; transition: all .2s;
+}
+.nav-back:hover { color: #fff; background: #ffffff12; }
+
+/* ── HERO ── */
+.hero {
+  background: var(--ink);
+  padding: 52px 28px 48px;
+  text-align: center;
+  position: relative; overflow: hidden;
+}
+.hero::after {
+  content: '';
+  position: absolute; inset: 0;
+  background:
+    radial-gradient(circle 400px at 20% 80%, #e8620a15, transparent),
+    radial-gradient(circle 300px at 80% 20%, #2d6a2d15, transparent);
+  pointer-events: none;
+}
+.hero-inner { position: relative; max-width: 700px; margin: 0 auto; }
+.hero-flag {
+  display: flex; align-items: center; justify-content: center;
+  gap: 8px; margin-bottom: 18px;
+}
+.flag-stripe {
+  width: 40px; height: 4px; border-radius: 2px;
+}
+.flag-stripe.orange { background: #e8620a; }
+.flag-stripe.white  { background: #f5e6c8; }
+.flag-stripe.green  { background: #2d6a2d; }
+.chakra { font-size: 1.1rem; margin: 0 6px; }
+
+.hero h1 {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: clamp(2.4rem, 6vw, 3.8rem);
+  color: #f5e6c8;
+  letter-spacing: .04em;
+  line-height: 1;
+}
+.hero h1 span { color: var(--saffron); }
+.hero-hi {
+  font-family: 'Tiro Devanagari Hindi', serif;
+  color: #c8b898; font-size: 1.05rem;
+  margin-top: 10px;
+}
+.hero p { color: #9a8878; font-size: .9rem; margin-top: 8px; font-weight: 300; }
+
+/* ── LANG TOGGLE ── */
+.lang-bar {
+  display: flex; justify-content: center;
+  gap: 0; margin-top: 20px;
+  background: #ffffff10; border-radius: 24px;
+  padding: 3px; width: fit-content; margin-left: auto; margin-right: auto;
+}
+.lb {
+  padding: 7px 22px; border-radius: 20px;
+  border: none; cursor: pointer;
+  font-family: 'Mulish', sans-serif;
+  font-size: .82rem; font-weight: 700;
+  color: #9a8878;
+  background: transparent;
+  transition: all .25s;
+}
+.lb.hi-btn { font-family: 'Tiro Devanagari Hindi', serif; font-size: .9rem; }
+.lb.active { background: var(--saffron); color: #fff; }
+
+/* ── MAIN ── */
+.wrap { max-width: 1100px; margin: 0 auto; padding: 36px 20px 64px; }
+
+/* ── FILTER CHIPS ── */
+.filters {
+  display: flex; gap: 8px; flex-wrap: wrap;
+  margin-bottom: 28px; align-items: center;
+}
+.filter-label { font-size: .78rem; color: var(--muted); font-weight: 700; text-transform: uppercase; letter-spacing: .07em; margin-right: 4px; }
+.fc {
+  padding: 6px 16px; border-radius: 20px;
+  border: 1.5px solid var(--line);
+  background: var(--card);
+  font-size: .78rem; font-weight: 700;
+  color: var(--muted); cursor: pointer;
+  transition: all .2s;
+  font-family: 'Mulish', sans-serif;
+}
+.fc:hover { border-color: var(--saffron); color: var(--saffron); }
+.fc.active { background: var(--saffron); border-color: var(--saffron); color: #fff; }
+
+/* ── GRID ── */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 20px;
+}
+
+/* ── SCHEME CARD ── */
+.scheme-card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  box-shadow: var(--sh);
+  overflow: hidden;
+  cursor: pointer;
+  transition: transform .2s, box-shadow .2s;
+  text-decoration: none;
+  display: flex; flex-direction: column;
+  animation: fadeUp .4s ease both;
+}
+.scheme-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shl);
+}
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: none; }
+}
+
+.card-top {
+  padding: 20px 22px 16px;
+  display: flex; align-items: flex-start; gap: 14px;
+  border-left: 4px solid var(--accent, #e8620a);
+}
+.card-icon {
+  width: 48px; height: 48px; border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.6rem; flex-shrink: 0;
+  background: var(--icon-bg, #fef3e8);
+}
+.card-head {}
+.card-name {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 1.3rem; letter-spacing: .04em;
+  color: var(--ink); line-height: 1.1;
+}
+.card-name-hi {
+  font-family: 'Tiro Devanagari Hindi', serif;
+  font-size: .88rem; color: var(--muted); margin-top: 1px;
+}
+.card-tagline {
+  font-size: .82rem; color: var(--muted);
+  font-weight: 600; margin-top: 6px;
+  line-height: 1.4;
+}
+.card-tagline-hi {
+  font-family: 'Tiro Devanagari Hindi', serif;
+  font-size: .82rem; color: var(--muted); margin-top: 2px;
+}
+
+.card-body { padding: 0 22px 16px; flex: 1; }
+.card-desc {
+  font-size: .84rem; color: var(--muted);
+  line-height: 1.6; display: -webkit-box;
+  -webkit-line-clamp: 3; -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.card-desc.hi { font-family: 'Tiro Devanagari Hindi', serif; font-size: .86rem; }
+
+.card-footer {
+  padding: 14px 22px;
+  border-top: 1px solid var(--line);
+  display: flex; align-items: center; justify-content: space-between;
+}
+.card-cat {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 3px 10px; border-radius: 12px;
+  font-size: .7rem; font-weight: 800;
+  text-transform: uppercase; letter-spacing: .06em;
+}
+.card-cat.hi { font-family: 'Tiro Devanagari Hindi', serif; text-transform: none; letter-spacing: 0; font-size: .75rem; }
+.card-cta {
+  font-size: .8rem; font-weight: 800;
+  display: flex; align-items: center; gap: 4px;
+  color: var(--saffron);
+  text-transform: uppercase; letter-spacing: .05em;
+  transition: gap .2s;
+}
+.scheme-card:hover .card-cta { gap: 8px; }
+
+/* ── COUNT BADGE ── */
+.count-row {
+  font-size: .8rem; color: var(--muted);
+  margin-bottom: 16px; font-weight: 600;
+}
+.count-row span { color: var(--saffron); font-weight: 800; }
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="nav-logo">🌾 Kisan AI</div>
+  <div class="nav-sep"></div>
+  <span class="nav-sub" id="nav-sub">Government Schemes</span>
+  <a href="/" class="nav-back">← Home</a>
+</nav>
+
+<div class="hero">
+  <div class="hero-inner">
+    <div class="hero-flag">
+      <div class="flag-stripe orange"></div>
+      <div class="flag-stripe white"></div>
+      <div class="flag-stripe green"></div>
+      <span class="chakra">☸</span>
+      <div class="flag-stripe green"></div>
+      <div class="flag-stripe white"></div>
+      <div class="flag-stripe orange"></div>
+    </div>
+    <h1>Govt <span>Schemes</span><br>for Farmers</h1>
+    <p class="hero-hi" id="hero-hi">किसानों के लिए सरकारी योजनाएं</p>
+    <p id="hero-p">Tap any scheme to chat with an AI assistant that knows everything about it</p>
+
+    <div class="lang-bar">
+      <button class="lb active" id="btn-en" onclick="setLang('en')">English</button>
+      <button class="lb hi-btn" id="btn-hi" onclick="setLang('hi')">हिंदी</button>
+    </div>
+  </div>
+</div>
+
+<div class="wrap">
+  <div class="filters" id="filters">
+    <span class="filter-label" id="fl-label">Filter:</span>
+    <button class="fc active" onclick="filter('all')" id="fc-all">All</button>
+  </div>
+
+  <div class="count-row" id="count-row">
+    Showing <span id="count">{{ schemes|length }}</span> schemes
+  </div>
+
+  <div class="grid" id="grid">
+    {% for s in schemes %}
+    <a class="scheme-card" href="/schemes/{{ s.id }}"
+       data-category="{{ s.category }}"
+       data-id="{{ s.id }}"
+       style="--accent: {{ s.color }}; animation-delay: {{ loop.index0 * 0.06 }}s">
+      <div class="card-top" style="border-left-color: {{ s.color }}">
+        <div class="card-icon" style="background: {{ s.color }}18">{{ s.icon }}</div>
+        <div class="card-head">
+          <div class="card-name">{{ s.name }}</div>
+          <div class="card-name-hi">{{ s.name_hi }}</div>
+          <div class="card-tagline en-text">{{ s.tagline }}</div>
+          <div class="card-tagline-hi hi-text" style="display:none">{{ s.tagline_hi }}</div>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="card-desc en-text">{{ s.description }}</div>
+        <div class="card-desc hi hi-text" style="display:none">{{ s.description_hi }}</div>
+      </div>
+      <div class="card-footer">
+        <span class="card-cat en-text"
+          style="background:{{ s.color }}18; color:{{ s.color }}">
+          {{ s.category }}
+        </span>
+        <span class="card-cat hi hi-text" style="display:none;
+          background:{{ s.color }}18; color:{{ s.color }}">
+          {{ s.category_hi }}
+        </span>
+        <span class="card-cta en-text">Chat with AI →</span>
+        <span class="card-cta hi-text" style="display:none;font-family:'Tiro Devanagari Hindi',serif">AI से पूछें →</span>
+      </div>
+    </a>
+    {% endfor %}
+  </div>
+</div>
+
+<script>
+let LANG = 'en';
+
+// Build category filter buttons
+const cats = [...new Set([...document.querySelectorAll('.scheme-card')].map(c => c.dataset.category))];
+const filtersEl = document.getElementById('filters');
+cats.forEach(cat => {
+  const btn = document.createElement('button');
+  btn.className = 'fc';
+  btn.textContent = cat;
+  btn.setAttribute('data-cat', cat);
+  btn.onclick = () => filter(cat);
+  filtersEl.appendChild(btn);
+});
+
+function filter(cat) {
+  document.querySelectorAll('.fc').forEach(b => b.classList.remove('active'));
+  const target = cat === 'all'
+    ? document.getElementById('fc-all')
+    : [...document.querySelectorAll('.fc')].find(b => b.dataset.cat === cat);
+  if (target) target.classList.add('active');
+
+  const cards = document.querySelectorAll('.scheme-card');
+  let visible = 0;
+  cards.forEach(c => {
+    const show = cat === 'all' || c.dataset.category === cat;
+    c.style.display = show ? 'flex' : 'none';
+    if (show) visible++;
+  });
+  document.getElementById('count').textContent = visible;
+}
+
+function setLang(l) {
+  LANG = l;
+  document.getElementById('btn-en').classList.toggle('active', l === 'en');
+  document.getElementById('btn-hi').classList.toggle('active', l === 'hi');
+
+  document.querySelectorAll('.en-text').forEach(el => el.style.display = l === 'en' ? '' : 'none');
+  document.querySelectorAll('.hi-text').forEach(el => el.style.display = l === 'hi' ? '' : 'none');
+
+  document.getElementById('hero-hi').style.display  = l === 'hi' ? 'block' : '';
+  document.getElementById('nav-sub').textContent    = l === 'hi' ? 'सरकारी योजनाएं' : 'Government Schemes';
+  document.getElementById('hero-p').textContent     = l === 'hi'
+    ? 'किसी भी योजना पर टैप करें — AI आपके सवालों का जवाब देगा'
+    : 'Tap any scheme to chat with an AI assistant that knows everything about it';
+  document.getElementById('fl-label').textContent   = l === 'hi' ? 'फ़िल्टर:' : 'Filter:';
+  document.getElementById('fc-all').textContent     = l === 'hi' ? 'सभी' : 'All';
+
+  // Update category filter buttons
+  document.querySelectorAll('.fc[data-cat]').forEach(btn => {
+    const scheme = [...document.querySelectorAll('.scheme-card')]
+      .find(c => c.dataset.category === btn.dataset.cat);
+    if (scheme && l === 'hi') {
+      const hiCat = scheme.querySelector('.card-cat.hi');
+      if (hiCat) btn.textContent = hiCat.textContent;
+    } else if (scheme && l === 'en') {
+      btn.textContent = btn.dataset.cat;
+    }
+  });
+
+  // Store in sessionStorage for the chat page to inherit
+  sessionStorage.setItem('kisan_lang', l);
+}
+</script>
+</body>
+</html>

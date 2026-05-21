@@ -1,0 +1,655 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Kisan Mandi AI 🌾</title>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@400;600;700;800&family=Noto+Sans+Devanagari:wght@400;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --moss:#1a3a1f;--leaf:#2d5a34;--sprout:#4a8c54;--grass:#6db876;
+  --lime:#a8d86e;--sun:#f0c840;--amber:#e8952a;--sky:#c8ebd0;
+  --fog:#e8f5ec;--white:#f5fbf0;--text:#1a2e1c;--text2:#3d5c42;
+  --text3:#6a8a6e;--green-soft:#d4edda;
+  --card-bg:rgba(255,255,255,0.86);
+  --shadow:0 4px 24px rgba(30,80,40,0.13);--radius:18px;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Baloo 2',cursive;background:var(--moss);color:var(--text);min-height:100vh;overflow-x:hidden}
+body.hi{font-family:'Noto Sans Devanagari',sans-serif}
+body.hi .en-only{display:none!important}
+body:not(.hi) .hi-only{display:none!important}
+
+.bg-layer{position:fixed;inset:0;z-index:0;overflow:hidden;pointer-events:none}
+.bg-layer::before{content:'';position:absolute;inset:0;background:
+  radial-gradient(ellipse 80% 60% at 20% 10%,rgba(74,140,84,.55) 0%,transparent 60%),
+  radial-gradient(ellipse 60% 80% at 80% 80%,rgba(29,74,35,.7) 0%,transparent 55%),
+  linear-gradient(160deg,#163820 0%,#0e2414 100%)}
+.bg-layer::after{content:'';position:absolute;inset:0;
+  background-image:url("data:image/svg+xml,%3Csvg width='80' height='80' viewBox='0 0 80 80' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M20 40 Q30 10 40 20 Q50 30 40 50 Q30 60 20 40Z' fill='rgba(90,160,80,0.04)'/%3E%3C/svg%3E");
+  background-size:80px 80px}
+
+.lf{position:fixed;opacity:0;pointer-events:none;z-index:1;animation:fl 13s ease-in-out infinite}
+.lf:nth-child(1){left:4%;font-size:1.1rem;animation-delay:0s;animation-duration:15s}
+.lf:nth-child(2){left:15%;font-size:1.4rem;animation-delay:3s;animation-duration:11s}
+.lf:nth-child(3){left:30%;font-size:.95rem;animation-delay:7s;animation-duration:17s}
+.lf:nth-child(4){left:52%;font-size:1.4rem;animation-delay:1s;animation-duration:13s}
+.lf:nth-child(5){left:70%;font-size:1.2rem;animation-delay:9s;animation-duration:10s}
+.lf:nth-child(6){left:84%;font-size:.85rem;animation-delay:5s;animation-duration:16s}
+.lf:nth-child(7){left:94%;font-size:1.3rem;animation-delay:11s;animation-duration:12s}
+@keyframes fl{0%{top:110%;opacity:0;transform:rotate(0) translateX(0)}10%{opacity:.3}50%{transform:rotate(180deg) translateX(28px)}90%{opacity:.25}100%{top:-10%;opacity:0;transform:rotate(360deg) translateX(-18px)}}
+
+.page{position:relative;z-index:2;max-width:960px;margin:0 auto;padding:0 16px 60px}
+
+.header{padding:32px 0 22px;text-align:center}
+.hbadge{display:inline-flex;align-items:center;gap:8px;background:rgba(168,216,110,.18);border:1.5px solid rgba(168,216,110,.35);color:var(--lime);font-size:.72rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;padding:5px 16px;border-radius:100px;margin-bottom:14px}
+.hbadge .dot{width:6px;height:6px;border-radius:50%;background:var(--lime);box-shadow:0 0 8px var(--lime);animation:blink 1.8s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+.header h1{font-size:clamp(2rem,5vw,3.2rem);font-weight:800;color:var(--white);line-height:1.1;text-shadow:0 2px 20px rgba(0,0,0,.4)}
+.header h1 .green{color:var(--lime)}
+.header-sub{margin-top:7px;font-size:.95rem;color:rgba(200,235,208,.75);font-weight:600}
+
+.lang-toggle{display:inline-flex;align-items:center;background:rgba(0,0,0,.35);border:1.5px solid rgba(168,216,110,.25);border-radius:100px;padding:3px;margin-top:14px;gap:2px}
+.lang-btn{padding:6px 18px;border-radius:100px;border:none;font-family:inherit;font-size:.82rem;font-weight:700;cursor:pointer;transition:all .2s;color:rgba(200,235,208,.6);background:transparent}
+.lang-btn.active{background:var(--sprout);color:var(--white);box-shadow:0 2px 8px rgba(74,140,84,.4)}
+body.hi .lang-btn.hi-btn{background:var(--sprout);color:var(--white);box-shadow:0 2px 8px rgba(74,140,84,.4)}
+body.hi .lang-btn.en-btn{background:transparent;color:rgba(200,235,208,.6)}
+body:not(.hi) .lang-btn.en-btn{background:var(--sprout);color:var(--white);box-shadow:0 2px 8px rgba(74,140,84,.4)}
+body:not(.hi) .lang-btn.hi-btn{background:transparent;color:rgba(200,235,208,.6)}
+
+.loc-bar{display:flex;align-items:center;justify-content:center;gap:10px;margin-top:14px;flex-wrap:wrap}
+.loc-pill{display:inline-flex;align-items:center;gap:7px;background:rgba(0,0,0,.3);border:1px solid rgba(168,216,110,.2);border-radius:100px;padding:7px 16px;font-size:.78rem;color:rgba(200,235,208,.82);font-family:'Space Mono',monospace;cursor:pointer;max-width:440px;transition:background .2s}
+.loc-pill:hover{background:rgba(0,0,0,.48)}
+.loc-text{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.gps-btn{display:inline-flex;align-items:center;gap:6px;background:rgba(74,140,84,.25);border:1.5px solid rgba(168,216,110,.3);border-radius:100px;padding:7px 16px;font-size:.8rem;font-weight:700;color:var(--lime);cursor:pointer;transition:all .2s}
+.gps-btn:hover{background:rgba(74,140,84,.42)}
+.gps-btn.spin{opacity:.55;pointer-events:none}
+.loc-detail{display:none;justify-content:center;flex-wrap:wrap;gap:6px;margin-top:10px}
+.loc-detail.show{display:flex}
+.loc-tag{padding:4px 12px;border-radius:100px;font-size:.72rem;font-weight:700}
+.loc-tag.v{background:rgba(168,216,110,.18);color:var(--lime)}
+.loc-tag.d{background:rgba(74,140,84,.22);color:rgba(180,230,150,.9)}
+.loc-tag.s{background:rgba(45,90,52,.3);color:rgba(168,216,110,.75)}
+
+.gps-banner{background:rgba(240,200,64,.1);border:1.5px solid rgba(240,200,64,.28);border-radius:12px;padding:13px 18px;margin-bottom:16px;display:none;align-items:center;gap:12px;font-size:.86rem;font-weight:600;color:rgba(240,220,100,.9)}
+.gps-banner.show{display:flex}
+.gps-banner button{margin-left:auto;padding:6px 16px;background:var(--sun);border:none;border-radius:8px;font-family:inherit;font-size:.8rem;font-weight:800;color:#1a2e1c;cursor:pointer;white-space:nowrap}
+
+.search-card{background:var(--card-bg);backdrop-filter:blur(20px);border-radius:var(--radius);padding:26px 22px 20px;box-shadow:var(--shadow),0 0 0 1px rgba(90,160,80,.12);margin-bottom:18px;position:relative;overflow:hidden}
+.search-card::before{content:'🌾';position:absolute;right:18px;top:50%;transform:translateY(-50%);font-size:4rem;opacity:.06;pointer-events:none}
+.search-card h2{font-size:1.05rem;font-weight:800;color:var(--leaf);margin-bottom:15px}
+.search-row{display:flex;gap:11px;align-items:stretch}
+@media(max-width:540px){.search-row{flex-direction:column}}
+.search-wrap{flex:1;position:relative}
+.s-icon{position:absolute;left:13px;top:50%;transform:translateY(-50%);font-size:1.15rem;pointer-events:none}
+input#cropInput{width:100%;padding:13px 14px 13px 42px;border:2px solid rgba(74,140,84,.22);border-radius:12px;font-family:inherit;font-size:1rem;font-weight:600;color:var(--text);background:var(--fog);outline:none;transition:border-color .2s,box-shadow .2s}
+input#cropInput:focus{border-color:var(--sprout);box-shadow:0 0 0 4px rgba(74,140,84,.12)}
+input#cropInput::placeholder{color:var(--text3);font-weight:400}
+.suggestions{position:absolute;top:calc(100% + 4px);left:0;right:0;background:var(--white);border:1.5px solid rgba(74,140,84,.18);border-radius:12px;box-shadow:0 8px 32px rgba(30,80,40,.14);z-index:200;max-height:230px;overflow-y:auto;display:none}
+.suggestions.open{display:block}
+.sugg-item{padding:10px 14px;cursor:pointer;font-size:.9rem;font-weight:600;color:var(--text);display:flex;align-items:center;gap:9px;transition:background .12s}
+.sugg-item:hover{background:var(--green-soft)}
+.sugg-hi{font-family:'Noto Sans Devanagari',sans-serif;font-size:.8rem;color:var(--text3)}
+.sugg-hint{font-size:.75rem;color:var(--text3);margin-left:auto;opacity:.65}
+.btn-search{padding:0 24px;background:linear-gradient(135deg,var(--sprout),var(--leaf));color:var(--white);border:none;border-radius:12px;font-family:inherit;font-size:.95rem;font-weight:800;cursor:pointer;transition:transform .14s,box-shadow .2s;box-shadow:0 4px 16px rgba(45,90,52,.3);display:flex;align-items:center;gap:7px;white-space:nowrap}
+.btn-search:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(45,90,52,.42)}
+.btn-search:active{transform:translateY(0)}
+.btn-search:disabled{opacity:.48;cursor:not-allowed;transform:none}
+.crop-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:13px}
+.chip{padding:4px 12px;background:rgba(74,140,84,.1);border:1.5px solid rgba(74,140,84,.2);border-radius:100px;font-size:.78rem;font-weight:700;color:var(--leaf);cursor:pointer;transition:all .12s}
+.chip:hover{background:var(--sprout);color:var(--white);border-color:var(--sprout)}
+
+.loading-card{display:none;text-align:center;padding:54px 20px}
+.loading-card.active{display:block}
+.loader-wrap{position:relative;width:72px;height:72px;margin:0 auto 18px}
+.loader-wrap::before{content:'';position:absolute;inset:0;border-radius:50%;border:4px solid rgba(168,216,110,.15)}
+.loader-wrap::after{content:'';position:absolute;inset:0;border-radius:50%;border:4px solid transparent;border-top-color:var(--lime);animation:spin .85s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loader-emoji{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:2rem;animation:bob .9s ease-in-out infinite alternate}
+@keyframes bob{from{transform:translate(-50%,-50%) scale(.9)}to{transform:translate(-50%,-50%) scale(1.1)}}
+.loading-card p{color:rgba(200,235,208,.7);font-size:.88rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase}
+.loading-card p.hi-p{font-family:'Noto Sans Devanagari',sans-serif;font-size:.84rem;letter-spacing:0;text-transform:none;color:rgba(168,216,110,.45);margin-top:5px}
+
+.err-card{display:none;background:rgba(192,57,43,.1);border:1.5px solid rgba(192,57,43,.28);border-radius:12px;padding:14px 18px;color:#e74c3c;font-weight:700;margin-bottom:16px;align-items:center;gap:10px}
+.err-card.active{display:flex}
+
+#results{display:none}
+#results.active{display:block}
+
+.dec-hero{border-radius:var(--radius);padding:24px 26px;margin-bottom:15px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;position:relative;overflow:hidden}
+.dec-hero.wait{background:linear-gradient(135deg,#1a5c28,#256b34);box-shadow:0 8px 32px rgba(26,92,40,.48)}
+.dec-hero.sell{background:linear-gradient(135deg,#7a3200,#a84800);box-shadow:0 8px 32px rgba(122,50,0,.48)}
+.dec-hero::before{content:'';position:absolute;inset:0;background:repeating-linear-gradient(45deg,rgba(255,255,255,.016) 0,rgba(255,255,255,.016) 2px,transparent 2px,transparent 12px)}
+.dec-kw{font-size:.66rem;font-weight:800;letter-spacing:3px;text-transform:uppercase;color:rgba(255,255,255,.5);margin-bottom:6px}
+.dec-action{font-size:clamp(1.7rem,4.5vw,2.7rem);font-weight:800;color:#fff;line-height:1;text-shadow:0 2px 12px rgba(0,0,0,.3)}
+.dec-reason{margin-top:6px;font-size:.9rem;color:rgba(255,255,255,.82);font-weight:600}
+.dec-scope{margin-top:6px;font-size:.67rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:rgba(255,255,255,.38)}
+.dec-icon{font-size:3.5rem;filter:drop-shadow(0 4px 8px rgba(0,0,0,.28))}
+
+.price-strip{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:15px}
+@media(max-width:500px){.price-strip{grid-template-columns:1fr 1fr}}
+.p-card{background:var(--card-bg);backdrop-filter:blur(16px);border-radius:14px;padding:16px 16px;box-shadow:var(--shadow);border:1.5px solid rgba(90,160,80,.11);transition:transform .13s}
+.p-card:hover{transform:translateY(-2px)}
+.p-label{font-size:.63rem;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:var(--text3);margin-bottom:6px}
+.p-val{font-family:'Space Mono',monospace;font-size:1.6rem;font-weight:700;color:var(--leaf)}
+.p-val .rs{font-size:.9rem;color:var(--text3)}
+.p-card.up .p-val{color:var(--sprout)}
+.p-card.dn .p-val{color:var(--amber)}
+.p-sub{font-size:.7rem;margin-top:3px;font-weight:600}
+.p-sub.up{color:#2e8b57}.p-sub.dn{color:var(--amber)}
+
+.chart-card{background:var(--card-bg);backdrop-filter:blur(16px);border-radius:var(--radius);padding:18px 20px 13px;box-shadow:var(--shadow);border:1.5px solid rgba(90,160,80,.11);margin-bottom:15px}
+.card-title{font-size:.65rem;font-weight:800;letter-spacing:2.5px;text-transform:uppercase;color:var(--text3);margin-bottom:12px;display:flex;align-items:center;gap:7px}
+.chart-wrap{height:144px}
+svg.trend{width:100%;height:100%}
+
+.best-card{background:linear-gradient(135deg,#f0faf2,#e4f7e8);border:2px solid rgba(74,140,84,.32);border-radius:var(--radius);padding:18px 20px;margin-bottom:15px;display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;box-shadow:0 4px 20px rgba(74,140,84,.14)}
+.bm-badge{display:inline-block;background:var(--sprout);color:#fff;font-size:.6rem;font-weight:800;letter-spacing:2px;text-transform:uppercase;padding:3px 10px;border-radius:100px;margin-bottom:6px}
+.bm-name{font-size:1.28rem;font-weight:800;color:var(--text)}
+.bm-sub{font-size:.77rem;color:var(--text2);margin-top:3px;font-weight:600}
+.bm-price{font-family:'Space Mono',monospace;font-size:2rem;font-weight:700;color:var(--leaf);line-height:1}
+.bm-price .rs{font-size:1.05rem;color:var(--sprout)}
+.bm-pred{font-size:.77rem;color:var(--text3);margin-top:3px;font-weight:600}
+
+.section-tabs{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap}
+.stab{padding:7px 18px;border-radius:100px;border:1.5px solid rgba(74,140,84,.2);background:rgba(255,255,255,.6);font-size:.8rem;font-weight:700;color:var(--leaf);cursor:pointer;transition:all .15s;display:flex;align-items:center;gap:6px}
+.stab.active,.stab:hover{background:var(--sprout);color:#fff;border-color:var(--sprout)}
+.stab .stab-count{background:rgba(255,255,255,.3);color:inherit;padding:1px 7px;border-radius:100px;font-size:.7rem}
+
+.panel{display:none}
+.panel.active{display:block}
+.markets-card,.nearby-card{background:var(--card-bg);backdrop-filter:blur(16px);border-radius:var(--radius);padding:18px 20px;box-shadow:var(--shadow);border:1.5px solid rgba(90,160,80,.11)}
+
+.nearby-list{display:flex;flex-direction:column;gap:8px;margin-top:4px}
+.nearby-row{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;background:var(--fog);border-radius:11px;border:1.5px solid rgba(90,160,80,.1);transition:border-color .16s}
+.nearby-row:hover{border-color:rgba(74,140,84,.3);background:#e8f5ec}
+.nearby-row.top{border-color:rgba(240,200,64,.45);background:#fdfbee}
+.nr-left{display:flex;align-items:center;gap:9px}
+.nr-rank{width:24px;height:24px;border-radius:50%;background:var(--sprout);color:#fff;font-size:.7rem;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.nr-rank.g{background:var(--sun);color:#5a3e00}
+.nr-name{font-size:.9rem;font-weight:700;color:var(--text)}
+.nr-type{font-size:.7rem;color:var(--text3);margin-top:1px;font-weight:600}
+.nr-dist{font-family:'Space Mono',monospace;font-size:.74rem;color:var(--text3);background:var(--sky);padding:3px 9px;border-radius:100px;white-space:nowrap}
+
+.market-list{display:flex;flex-direction:column;gap:8px;margin-top:4px}
+.mkt-row{display:grid;grid-template-columns:1fr auto auto;align-items:center;gap:10px;padding:11px 13px;background:var(--fog);border-radius:11px;border:1.5px solid rgba(90,160,80,.1);transition:border-color .16s,background .16s}
+.mkt-row:hover{background:#e8f5ec;border-color:rgba(74,140,84,.24)}
+.mkt-row.best{background:#e4f7e8;border-color:rgba(74,140,84,.36)}
+.mkt-row.local{border-color:rgba(240,200,64,.4);background:#fdfbee}
+.mkt-name{font-size:.9rem;font-weight:700;color:var(--text);display:flex;align-items:center;flex-wrap:wrap;gap:5px}
+.mkt-dist{font-size:.7rem;color:var(--text3);font-weight:600;margin-top:1px}
+.local-tag{font-size:.6rem;font-weight:800;background:rgba(240,200,64,.25);color:#7a6000;padding:2px 7px;border-radius:100px}
+.mkt-curr{font-family:'Space Mono',monospace;font-size:.94rem;font-weight:700;color:var(--leaf);text-align:right;white-space:nowrap}
+.mkt-pill{font-size:.68rem;font-weight:700;padding:3px 8px;border-radius:100px;white-space:nowrap}
+.mkt-pill.up{background:#d4edda;color:#1e7e34}
+.mkt-pill.dn{background:#ffe8d0;color:#c96d00}
+.show-more{width:100%;margin-top:10px;padding:10px;background:none;border:1.5px dashed rgba(74,140,84,.26);border-radius:10px;color:var(--sprout);font-family:inherit;font-size:.86rem;font-weight:700;cursor:pointer;transition:all .13s}
+.show-more:hover{background:var(--green-soft);border-style:solid}
+.no-data{color:var(--text3);font-size:.86rem;font-style:italic;padding:8px 0}
+
+/* back link */
+.back-bar{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.back-link{color:rgba(168,216,110,.6);font-size:.78rem;text-decoration:none;font-family:'Space Mono',monospace;transition:color .2s}
+.back-link:hover{color:var(--lime)}
+
+footer{text-align:center;padding:22px 0 8px;color:rgba(168,216,110,.32);font-family:'Space Mono',monospace;font-size:.64rem;letter-spacing:1px}
+.fade{opacity:0;transform:translateY(16px);transition:opacity .4s ease,transform .4s ease}
+.fade.in{opacity:1;transform:translateY(0)}
+::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:rgba(74,140,84,.26);border-radius:3px}
+</style>
+</head>
+<body>
+<div class="bg-layer"></div>
+<div class="lf">🍃</div><div class="lf">🌿</div><div class="lf">🍀</div>
+<div class="lf">🌱</div><div class="lf">🍃</div><div class="lf">🌿</div><div class="lf">🍀</div>
+
+<div class="page">
+
+  <!-- Back to home -->
+  <div class="back-bar" style="padding-top:18px">
+    <a class="back-link" href="/">← Home</a>
+  </div>
+
+  <!-- HEADER -->
+  <div class="header">
+    <div class="hbadge"><span class="dot"></span>
+      <span class="en-only">Live Hyperlocal Intelligence</span>
+      <span class="hi-only">लाइव स्थानीय बाज़ार जानकारी</span>
+    </div>
+    <h1>🌾 <span class="en-only">Kisan <span class="green">Mandi</span> AI</span>
+           <span class="hi-only">किसान <span class="green">मंडी</span> एआई</span></h1>
+    <p class="header-sub">
+      <span class="en-only">Hyperlocal Price Prediction for Indian Farmers</span>
+      <span class="hi-only">भारतीय किसानों के लिए स्थानीय मूल्य पूर्वानुमान</span>
+    </p>
+    <div>
+      <div class="lang-toggle">
+        <button class="lang-btn en-btn" onclick="setLang('en')">English</button>
+        <button class="lang-btn hi-btn" onclick="setLang('hi')">हिंदी</button>
+      </div>
+    </div>
+    <div class="loc-bar">
+      <div class="loc-pill" onclick="requestGPS()">
+        <span>📍</span>
+        <span class="loc-text" id="locText">
+          <span class="en-only">Detecting your location…</span>
+          <span class="hi-only">स्थान पहचाना जा रहा है…</span>
+        </span>
+      </div>
+      <button class="gps-btn" id="gpsBtn" onclick="requestGPS()">
+        <span>🎯</span>
+        <span class="en-only">Use My Location</span>
+        <span class="hi-only">मेरा स्थान उपयोग करें</span>
+      </button>
+    </div>
+    <div class="loc-detail" id="locDetail">
+      <span class="loc-tag v" id="tagV"></span>
+      <span class="loc-tag d" id="tagD"></span>
+      <span class="loc-tag s" id="tagS"></span>
+    </div>
+  </div>
+
+  <div class="gps-banner" id="gpsBanner">
+    <span>📡</span>
+    <span class="en-only">Allow GPS for accurate local mandi suggestions near you.</span>
+    <span class="hi-only">सटीक स्थानीय मंडी सुझाव के लिए GPS की अनुमति दें।</span>
+    <button onclick="requestGPS()">
+      <span class="en-only">Allow GPS</span>
+      <span class="hi-only">GPS दें</span>
+    </button>
+  </div>
+
+  <div class="search-card">
+    <h2>
+      <span class="en-only">🔍 Enter Your Crop Name</span>
+      <span class="hi-only">🔍 अपनी फसल का नाम लिखें</span>
+    </h2>
+    <div class="search-row">
+      <div class="search-wrap">
+        <span class="s-icon">🌾</span>
+        <input type="text" id="cropInput"
+          placeholder="Wheat / गेहूँ, Tomato / टमाटर, Potato / आलू…"
+          autocomplete="off" oninput="onCropInput()" onkeydown="onCropKey(event)"/>
+        <div class="suggestions" id="suggs"></div>
+      </div>
+      <button class="btn-search" id="searchBtn" onclick="doSearch()">
+        <span class="en-only">Search 🔍</span>
+        <span class="hi-only">खोजें 🔍</span>
+      </button>
+    </div>
+    <div class="crop-chips" id="chips"></div>
+  </div>
+
+  <div class="err-card" id="errCard"><span>⚠️</span><span id="errMsg"></span></div>
+
+  <div class="loading-card" id="loading">
+    <div class="loader-wrap"><div class="loader-emoji">🌾</div></div>
+    <p class="en-only">Fetching local mandi data…</p>
+    <p class="hi-only hi-p">स्थानीय मंडी डेटा लाया जा रहा है…</p>
+  </div>
+
+  <div id="results">
+    <div class="dec-hero fade" id="decHero">
+      <div>
+        <div class="dec-kw">
+          <span class="en-only">AI Recommendation</span>
+          <span class="hi-only">एआई सुझाव</span>
+        </div>
+        <div class="dec-action" id="decAction"></div>
+        <div class="dec-reason" id="decReason"></div>
+        <div class="dec-scope" id="decScope"></div>
+      </div>
+      <div class="dec-icon" id="decIcon"></div>
+    </div>
+
+    <div class="price-strip">
+      <div class="p-card fade">
+        <div class="p-label">
+          <span class="en-only">Current Price</span>
+          <span class="hi-only">वर्तमान भाव</span>
+        </div>
+        <div class="p-val"><span class="rs">₹</span><span id="pCurr"></span></div>
+        <div class="p-sub">
+          <span class="en-only">per quintal</span>
+          <span class="hi-only">प्रति क्विंटल</span>
+        </div>
+      </div>
+      <div class="p-card fade" id="pPredCard">
+        <div class="p-label">
+          <span class="en-only">Predicted Price</span>
+          <span class="hi-only">अनुमानित भाव</span>
+        </div>
+        <div class="p-val"><span class="rs">₹</span><span id="pPred"></span></div>
+        <div class="p-sub" id="pPredSub"></div>
+      </div>
+      <div class="p-card fade">
+        <div class="p-label">
+          <span class="en-only">Markets Found</span>
+          <span class="hi-only">मंडियाँ मिलीं</span>
+        </div>
+        <div class="p-val" id="pRec" style="font-size:1.5rem"></div>
+        <div class="p-sub">
+          <span class="en-only">records</span>
+          <span class="hi-only">रिकॉर्ड</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="chart-card fade">
+      <div class="card-title">
+        <span>📈</span>
+        <span class="en-only">Price Trend</span>
+        <span class="hi-only">मूल्य प्रवृत्ति</span>
+      </div>
+      <div class="chart-wrap">
+        <svg class="trend" id="trendSvg" viewBox="0 0 700 144" preserveAspectRatio="none"></svg>
+      </div>
+    </div>
+
+    <div class="best-card fade" id="bestCard">
+      <div>
+        <div class="bm-badge">
+          <span class="en-only">🏆 Best Market</span>
+          <span class="hi-only">🏆 सर्वश्रेष्ठ मंडी</span>
+        </div>
+        <div class="bm-name" id="bmName"></div>
+        <div class="bm-sub" id="bmSub"></div>
+      </div>
+      <div style="text-align:right">
+        <div class="bm-price"><span class="rs">₹</span><span id="bmPrice"></span></div>
+        <div class="bm-pred" id="bmPred"></div>
+      </div>
+    </div>
+
+    <div class="section-tabs fade">
+      <button class="stab active" id="tabLocal" onclick="switchTab('local')">
+        <span>📍</span>
+        <span class="en-only">Nearby Mandis</span>
+        <span class="hi-only">पास की मंडियाँ</span>
+        <span class="stab-count" id="tabLocalCount">0</span>
+      </button>
+      <button class="stab" id="tabAll" onclick="switchTab('all')">
+        <span>🏪</span>
+        <span class="en-only">All Markets</span>
+        <span class="hi-only">सभी मंडियाँ</span>
+        <span class="stab-count" id="tabAllCount">0</span>
+      </button>
+      <button class="stab" id="tabGovt" onclick="switchTab('govt')">
+        <span>🗂️</span>
+        <span class="en-only">Govt Price Data</span>
+        <span class="hi-only">सरकारी मूल्य डेटा</span>
+        <span class="stab-count" id="tabGovtCount">0</span>
+      </button>
+    </div>
+
+    <div class="panel active" id="panelLocal">
+      <div class="nearby-card fade">
+        <div class="card-title">
+          <span>📍</span>
+          <span class="en-only">Local Mandis Near You</span>
+          <span class="hi-only">आपके पास की स्थानीय मंडियाँ</span>
+          <span style="font-size:.58rem;color:var(--text3);margin-left:4px;letter-spacing:1px">(OpenStreetMap)</span>
+        </div>
+        <div class="nearby-list" id="nearbyList"></div>
+      </div>
+    </div>
+
+    <div class="panel" id="panelAll">
+      <div class="markets-card fade">
+        <div class="card-title">
+          <span>🏪</span>
+          <span class="en-only">All Markets — Nearby First</span>
+          <span class="hi-only">सभी मंडियाँ — पास की पहले</span>
+        </div>
+        <div class="market-list" id="marketListAll"></div>
+        <button class="show-more" id="showMoreAll" onclick="showMore('all')" style="display:none"></button>
+      </div>
+    </div>
+
+    <div class="panel" id="panelGovt">
+      <div class="markets-card fade">
+        <div class="card-title">
+          <span>🗂️</span>
+          <span class="en-only">Government Price Records</span>
+          <span class="hi-only">सरकारी मूल्य रिकॉर्ड</span>
+        </div>
+        <div class="market-list" id="marketListGovt"></div>
+        <button class="show-more" id="showMoreGovt" onclick="showMore('govt')" style="display:none"></button>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    <span class="en-only">Kisan Mandi AI · data.gov.in + OpenStreetMap · FastAPI + ML · Made with ❤️ for Indian Farmers</span>
+    <span class="hi-only">किसान मंडी एआई · data.gov.in + OpenStreetMap · FastAPI + ML · भारतीय किसानों के लिए ❤️</span>
+  </footer>
+</div>
+
+<script>
+let LAT=28.6692, LNG=77.4538;
+let GEO={locality:'',tehsil:'',district:'',state:'Uttar Pradesh'};
+let LANG = localStorage.getItem('lang') || 'en';
+let allMarkets=[], osmMandis=[], visAll=8, visGovt=8;
+let activeTab='local';
+
+const CROPS=[
+  {en:'Wheat',hi:'गेहूँ',hint:'Gehun'},{en:'Rice',hi:'चावल',hint:'Chawal'},
+  {en:'Tomato',hi:'टमाटर',hint:'Tamatar'},{en:'Potato',hi:'आलू',hint:'Aloo'},
+  {en:'Onion',hi:'प्याज',hint:'Pyaz'},{en:'Mustard',hi:'सरसों',hint:'Sarson'},
+  {en:'Maize',hi:'मक्का',hint:'Makka'},{en:'Gram',hi:'चना',hint:'Chana'},
+  {en:'Cauliflower',hi:'गोभी',hint:'Gobhi'},{en:'Carrot',hi:'गाजर',hint:'Gajar'},
+  {en:'Peas',hi:'मटर',hint:'Matar'},{en:'Brinjal',hi:'बैंगन',hint:'Baingan'},
+  {en:'Chilli',hi:'मिर्च',hint:'Mirch'},{en:'Garlic',hi:'लहसुन',hint:'Lahsun'},
+  {en:'Ginger',hi:'अदरक',hint:'Adrak'},{en:'Paddy',hi:'धान',hint:'Dhan'},
+  {en:'Soyabean',hi:'सोयाबीन',hint:'Soyabean'},{en:'Banana',hi:'केला',hint:'Kela'},
+  {en:'Mango',hi:'आम',hint:'Aam'},{en:'Spinach',hi:'पालक',hint:'Palak'},
+  {en:'Ladies Finger',hi:'भिंडी',hint:'Bhindi'},{en:'Bottle Gourd',hi:'लौकी',hint:'Lauki'},
+  {en:'Bitter Gourd',hi:'करेला',hint:'Karela'},{en:'Beans',hi:'सेम',hint:'Sem'},
+  {en:'Coriander',hi:'धनिया',hint:'Dhania'},{en:'Turmeric',hi:'हल्दी',hint:'Haldi'},
+];
+const QUICK=['Wheat','Rice','Tomato','Potato','Onion','Mustard','Maize','Gram'];
+
+function setLang(l){
+  LANG=l; localStorage.setItem('lang',l);
+  document.body.classList.toggle('hi', l==='hi');
+  buildChips();
+  document.getElementById('cropInput').placeholder = l==='hi'
+    ? 'गेहूँ, टमाटर, आलू, प्याज, धान…'
+    : 'Wheat / गेहूँ, Tomato / टमाटर, Potato / आलू…';
+}
+
+window.addEventListener('DOMContentLoaded',()=>{ setLang(LANG); buildChips(); tryGPSSilent(); });
+
+function buildChips(){
+  const c=document.getElementById('chips'); c.innerHTML='';
+  QUICK.forEach(name=>{
+    const crop=CROPS.find(x=>x.en===name);
+    const b=document.createElement('button');
+    b.className='chip';
+    b.textContent=LANG==='hi'?(crop?.hi||name):name;
+    b.onclick=()=>{document.getElementById('cropInput').value=LANG==='hi'?(crop?.hint||name):name; doSearch();};
+    c.appendChild(b);
+  });
+}
+
+function tryGPSSilent(){
+  if(!navigator.geolocation){fallbackToIP();return}
+  if(navigator.permissions){
+    navigator.permissions.query({name:'geolocation'}).then(p=>{
+      if(p.state==='granted') requestGPS();
+      else if(p.state==='denied') fallbackToIP();
+      else{document.getElementById('gpsBanner').classList.add('show');fallbackToIP();}
+    }).catch(()=>{document.getElementById('gpsBanner').classList.add('show');fallbackToIP();});
+  } else requestGPS();
+}
+
+function requestGPS(){
+  const btn=document.getElementById('gpsBtn');
+  btn.classList.add('spin');
+  document.getElementById('gpsBanner').classList.remove('show');
+  setLocRaw(LANG==='hi'?'🎯 सटीक स्थान प्राप्त किया जा रहा है…':'🎯 Getting exact location…');
+  navigator.geolocation.getCurrentPosition(
+    pos=>{LAT=pos.coords.latitude;LNG=pos.coords.longitude;btn.classList.remove('spin');setLocRaw(LANG==='hi'?'पता पहचाना जा रहा है…':'Detecting address…');fetchGeocode(LAT,LNG);},
+    _=>{btn.classList.remove('spin');fallbackToIP();},
+    {enableHighAccuracy:true,timeout:14000,maximumAge:60000}
+  );
+}
+
+async function fetchGeocode(lat,lng){
+  try{
+    // ← Updated path: /mandi/api/geocode
+    const d=await fetch(`/mandi/api/geocode?lat=${lat}&lng=${lng}`).then(r=>r.json());
+    GEO=d;
+    const parts=[d.locality,d.district,d.state].filter(Boolean);
+    setLocRaw('📍 '+parts.join(', ')+`  (${lat.toFixed(4)}°N, ${lng.toFixed(4)}°E)`);
+    showLocTags(d);
+  }catch{setLocRaw(`📍 ${lat.toFixed(4)}°N, ${lng.toFixed(4)}°E`);}
+}
+
+function showLocTags(d){
+  const det=document.getElementById('locDetail');
+  const tv=document.getElementById('tagV'),td=document.getElementById('tagD'),ts=document.getElementById('tagS');
+  if(d.locality){tv.textContent='🏘️ '+d.locality;tv.style.display='';}else tv.style.display='none';
+  if(d.district){td.textContent='📌 '+d.district;td.style.display='';}else td.style.display='none';
+  if(d.state){ts.textContent='🗺️ '+d.state;ts.style.display='';}else ts.style.display='none';
+  det.classList.add('show');
+}
+
+async function fallbackToIP(){
+  setLocRaw(LANG==='hi'?'🌐 आईपी से पता लगाया जा रहा है…':'🌐 Detecting via IP…');
+  try{
+    const r=await fetch('https://ipinfo.io/json').then(x=>x.json());
+    const[la,lo]=r.loc.split(',').map(Number);
+    LAT=la;LNG=lo;await fetchGeocode(la,lo);
+  }catch{
+    setLocRaw('📍 Ghaziabad, Uttar Pradesh');
+    GEO={locality:'Ghaziabad',district:'Ghaziabad',state:'Uttar Pradesh'};showLocTags(GEO);
+  }
+}
+
+function setLocRaw(t){document.getElementById('locText').textContent=t;}
+
+function onCropInput(){
+  const val=document.getElementById('cropInput').value.trim().toLowerCase();
+  const box=document.getElementById('suggs');
+  if(!val){box.classList.remove('open');return;}
+  const matches=CROPS.filter(c=>c.en.toLowerCase().includes(val)||c.hint.toLowerCase().includes(val)||c.hi.includes(val)).slice(0,8);
+  if(!matches.length){box.classList.remove('open');return;}
+  box.innerHTML=matches.map(c=>`<div class="sugg-item" onclick="pickSugg('${c.en}','${c.hint}')"><span>🌿</span><span style="font-weight:700;color:var(--text2)">${c.en}</span><span class="sugg-hi">${c.hi}</span><span class="sugg-hint">${c.hint}</span></div>`).join('');
+  box.classList.add('open');
+}
+function pickSugg(en,hint){document.getElementById('cropInput').value=LANG==='hi'?hint:en;document.getElementById('suggs').classList.remove('open');doSearch();}
+function onCropKey(e){if(e.key==='Enter'){document.getElementById('suggs').classList.remove('open');doSearch();}if(e.key==='Escape')document.getElementById('suggs').classList.remove('open');}
+document.addEventListener('click',e=>{if(!e.target.closest('.search-wrap'))document.getElementById('suggs').classList.remove('open');});
+
+async function doSearch(){
+  const crop=document.getElementById('cropInput').value.trim();
+  if(!crop){showErr(LANG==='hi'?'कृपया फसल का नाम लिखें।':'Please enter a crop name.');return;}
+  clearErr();setLoading(true);hideResults();
+  try{
+    // ← Updated path: /mandi/api/analyze
+    const p=new URLSearchParams({crop,lat:LAT,lng:LNG,state:GEO.state||'',district:GEO.district||''});
+    const r=await fetch(`/mandi/api/analyze?${p}`);
+    const d=await r.json();
+    if(!r.ok){showErr(LANG==='hi'?(d.error_hi||d.error_en||'विश्लेषण विफल'):(d.error_en||'Analysis failed'));return;}
+    renderResults(d);
+  }catch(e){showErr((LANG==='hi'?'नेटवर्क त्रुटि: ':'Network error: ')+e.message);}
+  finally{setLoading(false);}
+}
+
+function renderResults(d){
+  const isWait=d.decision==='WAIT';
+  const hero=document.getElementById('decHero');
+  hero.className='dec-hero fade '+(isWait?'wait':'sell');
+  document.getElementById('decAction').textContent=isWait?(LANG==='hi'?'📈 रुकें — कीमत बढ़ेगी':'📈 WAIT — Price Will Rise'):(LANG==='hi'?'📉 अभी बेचें — कीमत गिरेगी':'📉 SELL NOW — Price May Fall');
+  document.getElementById('decReason').textContent=isWait?(LANG==='hi'?'अनुमान है कि कीमत बढ़ेगी। अभी मत बेचें, थोड़ा रुकें।':'Price is expected to rise. Hold your crop for a better return.'):(LANG==='hi'?'कीमत गिर सकती है। अभी बेचना फायदेमंद है।':'Price may drop. Selling now would give the best return.');
+  document.getElementById('decScope').textContent=(LANG==='hi'?'डेटा क्षेत्र: ':'Data scope: ')+(d.data_scope||'National');
+  document.getElementById('decIcon').textContent=isWait?'🌱':'💰';
+
+  document.getElementById('pCurr').textContent=fmt(d.overall_current);
+  document.getElementById('pPred').textContent=fmt(d.overall_predicted);
+  const chg=d.change_pct;
+  document.getElementById('pPredCard').className='p-card fade '+(chg>=0?'up':'dn');
+  const sub=document.getElementById('pPredSub');
+  sub.className='p-sub '+(chg>=0?'up':'dn');
+  sub.textContent=(chg>=0?'▲ +':'▼ ')+Math.abs(chg)+'%';
+  document.getElementById('pRec').textContent=d.total_records;
+
+  drawTrend(d.trend,d.overall_current,d.overall_predicted);
+
+  if(d.best_market){
+    document.getElementById('bmName').textContent=d.best_market.market;
+    document.getElementById('bmSub').textContent=[d.best_market.district,d.best_market.state].filter(Boolean).join(' · ');
+    document.getElementById('bmPrice').textContent=fmt(d.best_market.current_price);
+    const bc=d.best_market.change_pct;
+    document.getElementById('bmPred').textContent=(LANG==='hi'?'अनुमानित: ':'Predicted: ')+'₹'+fmt(d.best_market.predicted_price)+'  ('+(bc>=0?'+':'')+bc+'%)';
+    document.getElementById('bestCard').style.display='';
+  }else document.getElementById('bestCard').style.display='none';
+
+  allMarkets=d.markets||[];osmMandis=d.nearby_osm||[];visAll=8;visGovt=8;
+  document.getElementById('tabLocalCount').textContent=osmMandis.length;
+  document.getElementById('tabAllCount').textContent=allMarkets.filter(m=>m.is_nearby).length;
+  document.getElementById('tabGovtCount').textContent=allMarkets.length;
+
+  renderOSMList();renderMarkets('all');renderMarkets('govt');switchTab('local');showResults();
+}
+
+function renderOSMList(){
+  const el=document.getElementById('nearbyList');
+  if(!osmMandis.length){el.innerHTML='<p class="no-data">'+(LANG==='hi'?'आपके आसपास कोई मंडी नहीं मिली। OpenStreetMap पर डेटा उपलब्ध नहीं है।':'No mandis found nearby. OpenStreetMap data may be sparse in your area.')+'</p>';return;}
+  el.innerHTML=osmMandis.map((m,i)=>`<div class="nearby-row ${i===0?'top':''}"><div class="nr-left"><div class="nr-rank ${i===0?'g':''}">${i+1}</div><div><div class="nr-name">${m.name}</div><div class="nr-type">${m.address||m.type||'Mandi'}</div></div></div><span class="nr-dist">${m.distance_km} km</span></div>`).join('');
+}
+
+function renderMarkets(type){
+  const isAll=type==='all';
+  const listEl=document.getElementById(isAll?'marketListAll':'marketListGovt');
+  const btnEl=document.getElementById(isAll?'showMoreAll':'showMoreGovt');
+  const vis=isAll?visAll:visGovt;
+  const shown=allMarkets.slice(0,vis);
+  listEl.innerHTML=shown.map((m,i)=>{
+    const up=m.change_pct>=0;const isFirst=i===0;
+    const cls=isFirst?'best':m.is_nearby?'local':'';
+    const tag=m.is_nearby?`<span class="local-tag">📍 ${LANG==='hi'?'पास में':'Near You'}</span>`:'';
+    return `<div class="mkt-row ${cls}"><div><div class="mkt-name">${isFirst?'🏆 ':''}${m.market}${tag}</div><div class="mkt-dist">${[m.district,m.state].filter(Boolean).join(' · ')}</div></div><div class="mkt-curr">₹${fmt(m.current_price)}</div><div class="mkt-pill ${up?'up':'dn'}">${up?'▲':'▼'} ₹${fmt(m.predicted_price)}</div></div>`;
+  }).join('');
+  if(allMarkets.length>vis){btnEl.style.display='';const rem=allMarkets.length-vis;btnEl.textContent=LANG==='hi'?`▼ और ${rem} मंडियाँ देखें`:`▼ Show ${rem} more markets`;}else btnEl.style.display='none';
+}
+
+function showMore(type){if(type==='all')visAll+=10;else visGovt+=10;renderMarkets(type);}
+
+function switchTab(tab){
+  activeTab=tab;
+  ['local','all','govt'].forEach(t=>{
+    document.getElementById('tab'+cap(t)).classList.toggle('active',t===tab);
+    document.getElementById('panel'+cap(t)).classList.toggle('active',t===tab);
+  });
+}
+function cap(s){return s.charAt(0).toUpperCase()+s.slice(1);}
+
+function drawTrend(trend,current,predicted){
+  const svg=document.getElementById('trendSvg');
+  if(!trend||!trend.length){svg.innerHTML='';return;}
+  const W=700,H=144,p={t:14,r:24,b:24,l:52};
+  const pts=[...trend,{i:trend.length,price:predicted}];
+  const pr=pts.map(x=>x.price);
+  const mn=Math.min(...pr)*.97,mx=Math.max(...pr)*1.03;
+  const xs=i=>p.l+(i/(pts.length-1))*(W-p.l-p.r);
+  const ys=v=>p.t+(1-(v-mn)/(mx-mn))*(H-p.t-p.b);
+  const ap=`M ${xs(0)},${H-p.b} L ${trend.map((x,i)=>`${xs(i)},${ys(x.price)}`).join(' L ')} L ${xs(trend.length-1)},${H-p.b} Z`;
+  const lp=trend.map((x,i)=>`${i===0?'M':'L'} ${xs(i)},${ys(x.price)}`).join(' ');
+  const pp=`M ${xs(trend.length-1)},${ys(trend[trend.length-1].price)} L ${xs(pts.length-1)},${ys(predicted)}`;
+  const gv=[mn,(mn+mx)/2,mx];
+  const gr=gv.map(v=>`<line x1="${p.l}" y1="${ys(v)}" x2="${W-p.r}" y2="${ys(v)}" stroke="rgba(74,140,84,.1)" stroke-width="1"/>`).join('');
+  const yl=gv.map(v=>`<text x="${p.l-5}" y="${ys(v)+4}" fill="rgba(74,140,84,.48)" font-size="9" font-family="Space Mono" text-anchor="end">₹${Math.round(v)}</text>`).join('');
+  svg.innerHTML=`<defs><linearGradient id="ag" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="rgba(74,140,84,0.22)"/><stop offset="100%" stop-color="rgba(74,140,84,0)"/></linearGradient></defs>${gr}${yl}<path d="${ap}" fill="url(#ag)"/><path d="${lp}" fill="none" stroke="#4a8c54" stroke-width="2.5" stroke-linejoin="round"/><path d="${pp}" fill="none" stroke="#e8952a" stroke-width="2.5" stroke-dasharray="6,4"/><circle cx="${xs(trend.length-1)}" cy="${ys(current)}" r="5" fill="#4a8c54" stroke="#fff" stroke-width="2"/><circle cx="${xs(pts.length-1)}" cy="${ys(predicted)}" r="6" fill="#e8952a" stroke="#fff" stroke-width="2"/><text x="${xs(pts.length-1)+9}" y="${ys(predicted)+4}" fill="#e8952a" font-size="9" font-family="Space Mono">${LANG==='hi'?'अनुमान':'predicted'}</text><text x="${xs(trend.length-1)+9}" y="${ys(current)+4}" fill="#4a8c54" font-size="9" font-family="Space Mono">${LANG==='hi'?'वर्तमान':'current'}</text>`;
+}
+
+const fmt=v=>Number(v).toLocaleString('en-IN');
+function setLoading(on){document.getElementById('loading').classList.toggle('active',on);document.getElementById('searchBtn').disabled=on;}
+function showResults(){document.getElementById('results').classList.add('active');document.querySelectorAll('.fade').forEach((el,i)=>setTimeout(()=>el.classList.add('in'),i*70));}
+function hideResults(){document.getElementById('results').classList.remove('active');document.querySelectorAll('.fade').forEach(el=>el.classList.remove('in'));}
+function showErr(msg){document.getElementById('errMsg').textContent=msg;document.getElementById('errCard').classList.add('active');}
+function clearErr(){document.getElementById('errCard').classList.remove('active');}
+</script>
+</body>
+</html>

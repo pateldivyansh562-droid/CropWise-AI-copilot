@@ -1,0 +1,928 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Crop Doctor — Kisan AI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Outfit:wght@300;400;500;600;700;800&family=Tiro+Devanagari+Hindi&display=swap" rel="stylesheet"/>
+<style>
+/* ═══════════════════════════════════════════════
+   TOKENS — dark diagnostic lab
+═══════════════════════════════════════════════ */
+:root {
+  --bg:      #0a0e0a;
+  --surface: #0f1510;
+  --card:    #131a14;
+  --card2:   #171f18;
+  --line:    #1e2b1f;
+  --line2:   #253026;
+
+  --green:   #39d353;  /* healthy */
+  --green-d: #1a6b2a;
+  --red:     #ff4444;  /* disease alert */
+  --red-d:   #5c1010;
+  --amber:   #f5a623;  /* warning */
+  --amber-d: #5a3a08;
+  --cyan:    #00d4ff;  /* info / AI */
+  --cyan-d:  #003d4d;
+
+  --text:    #d4e8d4;
+  --muted:   #5a7a5a;
+  --mono:    'Share Tech Mono', monospace;
+  --sans:    'Outfit', sans-serif;
+  --r:       12px;
+  --r-lg:    18px;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--sans);
+  min-height: 100vh;
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+/* Scanline texture overlay */
+body::before {
+  content: '';
+  position: fixed; inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(57,211,83,.012) 2px,
+    rgba(57,211,83,.012) 4px
+  );
+  pointer-events: none; z-index: 1000;
+}
+
+/* ── NAV ── */
+.nav {
+  background: var(--surface);
+  border-bottom: 1px solid var(--line);
+  display: flex; align-items: center;
+  padding: 0 24px; height: 52px; gap: 14px;
+  position: sticky; top: 0; z-index: 200;
+}
+.nav-logo {
+  font-family: var(--mono);
+  font-size: .95rem; color: var(--green);
+  letter-spacing: .1em; display: flex; align-items: center; gap: 8px;
+}
+.nav-logo .blink { animation: blink-c 1s step-end infinite; }
+@keyframes blink-c { 50% { opacity: 0; } }
+.nav-sep { width: 1px; height: 18px; background: var(--line2); }
+.nav-sub { font-size: .75rem; color: var(--muted); font-family: var(--mono); }
+.nav-back {
+  margin-left: auto; color: var(--muted);
+  text-decoration: none; font-size: .75rem;
+  padding: 5px 13px; border: 1px solid var(--line2);
+  border-radius: 6px; font-family: var(--mono);
+  transition: all .2s;
+}
+.nav-back:hover { color: var(--green); border-color: var(--green); }
+
+/* Lang toggle */
+.lang-tog {
+  display: flex; background: var(--card);
+  border: 1px solid var(--line2); border-radius: 6px;
+  overflow: hidden;
+}
+.lt {
+  padding: 5px 14px; border: none; cursor: pointer;
+  font-size: .75rem; font-weight: 600;
+  font-family: var(--mono);
+  color: var(--muted); background: transparent;
+  transition: all .2s; letter-spacing: .05em;
+}
+.lt.hi { font-family: 'Tiro Devanagari Hindi', serif; font-size: .82rem; letter-spacing: 0; }
+.lt.active { background: var(--green); color: #000; font-weight: 700; }
+
+/* ── HERO ── */
+.hero {
+  text-align: center;
+  padding: 52px 24px 40px;
+  position: relative;
+}
+.hero-grid {
+  position: absolute; inset: 0; overflow: hidden;
+  background-image:
+    linear-gradient(var(--line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--line) 1px, transparent 1px);
+  background-size: 40px 40px;
+  mask-image: radial-gradient(ellipse 80% 100% at 50% 0%, black 40%, transparent 100%);
+  opacity: .4;
+}
+.hero-inner { position: relative; max-width: 600px; margin: 0 auto; }
+.hero-badge {
+  display: inline-flex; align-items: center; gap: 7px;
+  background: #39d35318; border: 1px solid #39d35330;
+  border-radius: 20px; padding: 5px 14px;
+  font-family: var(--mono); font-size: .72rem;
+  color: var(--green); letter-spacing: .08em;
+  margin-bottom: 16px;
+}
+.hero-badge .pulse-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--green);
+  animation: pulse-g 1.5s ease-in-out infinite;
+}
+@keyframes pulse-g {
+  0%,100% { box-shadow: 0 0 0 0 #39d35340; }
+  50%      { box-shadow: 0 0 0 6px transparent; }
+}
+.hero h1 {
+  font-size: clamp(2rem, 5vw, 3rem);
+  font-weight: 800; line-height: 1.1;
+  color: #fff; letter-spacing: -.02em;
+}
+.hero h1 .hi-word { color: var(--green); }
+.hero-hi {
+  font-family: 'Tiro Devanagari Hindi', serif;
+  color: var(--muted); font-size: 1rem; margin-top: 8px;
+}
+.hero p { color: var(--muted); font-size: .88rem; margin-top: 8px; font-weight: 300; }
+
+/* ── MAIN WRAP ── */
+.wrap { max-width: 860px; margin: 0 auto; padding: 0 20px 72px; }
+
+/* ── UPLOAD ZONE ── */
+.upload-zone {
+  border: 2px dashed var(--line2);
+  border-radius: var(--r-lg);
+  padding: 48px 24px;
+  text-align: center;
+  cursor: pointer;
+  transition: all .25s;
+  background: var(--card);
+  position: relative; overflow: hidden;
+  margin-bottom: 20px;
+}
+.upload-zone::before {
+  content: '';
+  position: absolute; inset: 0;
+  background: radial-gradient(ellipse 60% 60% at 50% 50%, #39d35308, transparent);
+  pointer-events: none;
+}
+.upload-zone:hover, .upload-zone.drag-over {
+  border-color: var(--green);
+  background: #39d35308;
+}
+.upload-zone.has-image { padding: 0; border-style: solid; border-color: var(--green); }
+.upload-icon { font-size: 3rem; margin-bottom: 12px; }
+.upload-title {
+  font-weight: 700; font-size: 1rem; color: #fff; margin-bottom: 6px;
+}
+.upload-title.hi { font-family: 'Tiro Devanagari Hindi', serif; font-size: 1.05rem; }
+.upload-sub { font-size: .8rem; color: var(--muted); }
+.upload-sub.hi { font-family: 'Tiro Devanagari Hindi', serif; font-size: .85rem; }
+.upload-sub span { color: var(--green); font-weight: 600; }
+#file-input { display: none; }
+
+/* image preview */
+#img-preview {
+  width: 100%; max-height: 340px; object-fit: contain;
+  border-radius: 16px; display: none;
+}
+
+/* crop name input */
+.crop-row {
+  display: flex; gap: 12px; align-items: center;
+  margin-bottom: 16px;
+}
+.crop-inp {
+  flex: 1; background: var(--card);
+  border: 1px solid var(--line2);
+  border-radius: var(--r); color: var(--text);
+  padding: 11px 16px; font-size: .9rem;
+  font-family: var(--sans); outline: none;
+  transition: border-color .2s;
+}
+.crop-inp.hi { font-family: 'Tiro Devanagari Hindi', serif; }
+.crop-inp:focus { border-color: var(--green); }
+.crop-inp::placeholder { color: var(--muted); }
+
+/* ── SCAN BUTTON ── */
+.scan-btn {
+  width: 100%; padding: 14px;
+  background: var(--green); color: #000;
+  border: none; border-radius: var(--r);
+  font-family: var(--sans); font-size: 1rem;
+  font-weight: 700; cursor: pointer;
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  transition: all .2s;
+  letter-spacing: .02em;
+  margin-bottom: 20px;
+}
+.scan-btn:hover:not(:disabled) { filter: brightness(1.1); transform: translateY(-1px); }
+.scan-btn:disabled { opacity: .4; cursor: not-allowed; transform: none; }
+.scan-btn.hi { font-family: 'Tiro Devanagari Hindi', serif; font-size: 1.05rem; }
+
+/* spinner */
+.spin {
+  width: 18px; height: 18px;
+  border: 2px solid rgba(0,0,0,.3); border-top-color: #000;
+  border-radius: 50%; animation: rot .6s linear infinite; display: none;
+}
+@keyframes rot { to { transform: rotate(360deg); } }
+
+/* ── SCANNING ANIMATION ── */
+#scan-overlay {
+  display: none;
+  background: var(--card);
+  border: 1px solid var(--line2);
+  border-radius: var(--r-lg);
+  padding: 40px 24px;
+  text-align: center;
+  margin-bottom: 20px;
+  position: relative; overflow: hidden;
+}
+.scan-line {
+  position: absolute; left: 0; right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--green), transparent);
+  animation: scan-move 1.8s ease-in-out infinite;
+  top: 0;
+  box-shadow: 0 0 12px var(--green);
+}
+@keyframes scan-move {
+  0%   { top: 0; opacity: 0; }
+  10%  { opacity: 1; }
+  90%  { opacity: 1; }
+  100% { top: 100%; opacity: 0; }
+}
+.scan-icon { font-size: 3.5rem; margin-bottom: 14px; }
+.scan-title {
+  font-family: var(--mono); font-size: .9rem; color: var(--green);
+  letter-spacing: .1em; text-transform: uppercase;
+}
+.scan-sub { font-size: .78rem; color: var(--muted); margin-top: 8px; font-family: var(--mono); }
+.scan-dots span {
+  display: inline-block; animation: dot-f .9s ease-in-out infinite;
+}
+.scan-dots span:nth-child(2) { animation-delay: .15s; }
+.scan-dots span:nth-child(3) { animation-delay: .3s; }
+@keyframes dot-f { 0%,80%,100%{opacity:.2} 40%{opacity:1} }
+
+/* ── RESULT CARD ── */
+#result-section { display: none; animation: rise .5s ease; }
+@keyframes rise {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: none; }
+}
+
+.result-card {
+  border-radius: var(--r-lg);
+  padding: 24px 26px;
+  margin-bottom: 20px;
+  border: 1px solid transparent;
+  position: relative; overflow: hidden;
+}
+.result-card.disease {
+  background: linear-gradient(135deg, #1a0808, var(--card));
+  border-color: #ff444440;
+}
+.result-card.healthy {
+  background: linear-gradient(135deg, #081a0a, var(--card));
+  border-color: #39d35340;
+}
+
+/* Glow edge */
+.result-card.disease::before { content:''; position:absolute; top:0;left:0;right:0;height:2px; background:linear-gradient(90deg, transparent, var(--red), transparent); }
+.result-card.healthy::before { content:''; position:absolute; top:0;left:0;right:0;height:2px; background:linear-gradient(90deg, transparent, var(--green), transparent); }
+
+.rc-top { display: flex; align-items: flex-start; gap: 18px; flex-wrap: wrap; }
+.rc-icon { font-size: 3rem; line-height: 1; flex-shrink: 0; }
+.rc-body { flex: 1; }
+.rc-label {
+  font-family: var(--mono); font-size: .68rem;
+  text-transform: uppercase; letter-spacing: .1em; margin-bottom: 4px;
+}
+.result-card.disease .rc-label { color: var(--red); }
+.result-card.healthy .rc-label { color: var(--green); }
+.rc-name { font-size: 1.6rem; font-weight: 800; color: #fff; letter-spacing: -.01em; }
+.rc-conf {
+  display: inline-flex; align-items: center; gap: 6px;
+  margin-top: 8px;
+}
+.conf-bar {
+  height: 6px; width: 120px; background: var(--line2);
+  border-radius: 3px; overflow: hidden;
+}
+.conf-fill {
+  height: 100%; border-radius: 3px;
+  transition: width 1s cubic-bezier(.4,0,.2,1);
+}
+.result-card.disease .conf-fill { background: var(--red); }
+.result-card.healthy .conf-fill { background: var(--green); }
+.conf-pct { font-family: var(--mono); font-size: .85rem; }
+.result-card.disease .conf-pct { color: var(--red); }
+.result-card.healthy .conf-pct { color: var(--green); }
+
+/* Other suggestions */
+.suggestions { margin-top: 16px; }
+.sug-label { font-size: .72rem; color: var(--muted); font-family: var(--mono); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 8px; }
+.sug-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 7px 0; border-bottom: 1px solid var(--line);
+  font-size: .82rem;
+}
+.sug-item:last-child { border-bottom: none; }
+.sug-name { flex: 1; color: var(--text); }
+.sug-pct { font-family: var(--mono); font-size: .78rem; color: var(--muted); }
+.sug-mini-bar {
+  width: 60px; height: 4px;
+  background: var(--line2); border-radius: 2px; overflow: hidden;
+}
+.sug-mini-fill { height: 100%; background: var(--amber); border-radius: 2px; }
+
+/* scan again btn */
+.scan-again {
+  display: inline-flex; align-items: center; gap: 7px;
+  background: transparent; border: 1px solid var(--line2);
+  border-radius: var(--r); color: var(--muted);
+  padding: 8px 16px; font-size: .8rem;
+  cursor: pointer; font-family: var(--sans);
+  transition: all .2s; margin-top: 14px;
+}
+.scan-again:hover { border-color: var(--green); color: var(--green); }
+
+/* ── AI SECTION ── */
+.ai-section {
+  background: var(--card);
+  border: 1px solid var(--line2);
+  border-radius: var(--r-lg);
+  overflow: hidden;
+  margin-bottom: 20px;
+}
+
+/* Section tabs */
+.tabs {
+  display: flex; overflow-x: auto;
+  border-bottom: 1px solid var(--line2);
+  background: var(--surface);
+  scrollbar-width: none;
+}
+.tabs::-webkit-scrollbar { display: none; }
+.tab {
+  padding: 12px 20px;
+  border: none; cursor: pointer;
+  font-family: var(--sans); font-size: .82rem;
+  font-weight: 600; color: var(--muted);
+  background: transparent;
+  white-space: nowrap;
+  border-bottom: 2px solid transparent;
+  transition: all .2s;
+  display: flex; align-items: center; gap: 6px;
+}
+.tab:hover { color: var(--text); }
+.tab.active { color: var(--green); border-bottom-color: var(--green); }
+.tab.hi { font-family: 'Tiro Devanagari Hindi', serif; font-size: .88rem; }
+
+/* AI output */
+.ai-out-wrap { padding: 22px 24px; min-height: 160px; }
+.ai-status {
+  display: flex; align-items: center; gap: 8px;
+  font-family: var(--mono); font-size: .72rem;
+  color: var(--cyan); text-transform: uppercase;
+  letter-spacing: .08em; margin-bottom: 14px;
+}
+.ai-status-dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--cyan);
+}
+.ai-status-dot.live { animation: pulse-c 1.2s ease-in-out infinite; }
+@keyframes pulse-c {
+  0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.3;transform:scale(1.5)}
+}
+#ai-output {
+  font-size: .9rem; line-height: 1.85;
+  color: var(--text); white-space: pre-wrap;
+}
+#ai-output.hi { font-family: 'Tiro Devanagari Hindi', serif; font-size: .93rem; }
+#ai-output .cur {
+  display: inline-block; width: 8px; height: .9em;
+  background: var(--cyan); margin-left: 2px;
+  animation: blink-c .7s step-end infinite;
+  vertical-align: text-bottom;
+}
+.ai-placeholder {
+  color: var(--muted); font-style: italic;
+  font-size: .85rem; font-family: var(--mono);
+}
+
+/* ── EMPTY STATE ── */
+.empty {
+  text-align: center; padding: 60px 20px;
+  color: var(--muted);
+}
+.empty .eico { font-size: 3.5rem; margin-bottom: 14px; }
+.empty h3 { font-size: 1rem; color: var(--text); font-weight: 600; margin-bottom: 6px; }
+.empty p { font-size: .82rem; }
+.empty p.hi { font-family: 'Tiro Devanagari Hindi', serif; }
+
+/* ── RESPONSIVE ── */
+@media (max-width: 540px) {
+  .rc-name { font-size: 1.3rem; }
+  .tabs { gap: 0; }
+  .tab { padding: 10px 14px; font-size: .78rem; }
+}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav class="nav">
+  <div class="nav-logo">
+    <span>🔬</span>
+    CROP_DOCTOR<span class="blink">_</span>
+  </div>
+  <div class="nav-sep"></div>
+  <span class="nav-sub" id="nav-sub">DISEASE.DETECTION.SYSTEM</span>
+  <div class="lang-tog" style="margin-left:auto">
+    <button class="lt active" id="lt-en" onclick="setLang('en')">EN</button>
+    <button class="lt hi" id="lt-hi" onclick="setLang('hi')">हि</button>
+  </div>
+  <a href="/" class="nav-back">← HOME</a>
+</nav>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-grid"></div>
+  <div class="hero-inner">
+    <div class="hero-badge">
+      <div class="pulse-dot"></div>
+      <span id="hb-text">PLANT.ID v3 · LLAMA3 AI ANALYSIS</span>
+    </div>
+    <h1>Diagnose your<br><span class="hi-word">Crop Disease</span></h1>
+    <p class="hero-hi" id="hero-hi">फसल की बीमारी पहचानें — AI से इलाज जानें</p>
+    <p id="hero-p">Upload a photo of the infected plant. AI will detect the disease and give you full treatment advice.</p>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div class="wrap">
+
+  <!-- Upload zone -->
+  <div class="upload-zone" id="upload-zone"
+    onclick="document.getElementById('file-input').click()"
+    ondragover="dragOver(event)" ondragleave="dragLeave(event)" ondrop="dropFile(event)">
+    <img id="img-preview" alt="Uploaded plant"/>
+    <div id="upload-placeholder">
+      <div class="upload-icon">🌿</div>
+      <div class="upload-title" id="up-title">Drop plant photo here</div>
+      <div class="upload-sub" id="up-sub">or <span>click to browse</span> · JPG, PNG, WEBP · max 10MB</div>
+    </div>
+  </div>
+  <input type="file" id="file-input" accept="image/*" onchange="fileSelected(event)"/>
+
+  <!-- Crop name -->
+  <div class="crop-row">
+    <input class="crop-inp" id="crop-name" type="text"
+      placeholder="Crop name (optional) — e.g. Tomato, Wheat…"/>
+  </div>
+
+  <!-- Scan button -->
+  <button class="scan-btn" id="scan-btn" onclick="runScan()" disabled>
+    <span id="sb-ico">🔬</span>
+    <span id="sb-lbl">Scan for Disease</span>
+    <div class="spin" id="spin"></div>
+  </button>
+
+  <!-- Scanning overlay -->
+  <div id="scan-overlay">
+    <div class="scan-line"></div>
+    <div class="scan-icon">🔬</div>
+    <div class="scan-title" id="sc-title">ANALYSING PLANT<span class="scan-dots"><span>.</span><span>.</span><span>.</span></span></div>
+    <div class="scan-sub" id="sc-sub">Sending to Plant.id API · Running disease detection</div>
+  </div>
+
+  <!-- Result section -->
+  <div id="result-section">
+
+    <!-- Result card -->
+    <div id="result-card"></div>
+
+    <!-- AI Explanation -->
+    <div class="ai-section" id="ai-section">
+      <div class="tabs" id="tabs"></div>
+      <div class="ai-out-wrap">
+        <div class="ai-status">
+          <div class="ai-status-dot" id="ai-dot"></div>
+          <span id="ai-status-txt">WAITING</span>
+        </div>
+        <div id="ai-output"><span class="ai-placeholder" id="ai-ph">Select a section above to get AI analysis…</span></div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Empty state -->
+  <div class="empty" id="empty-state">
+    <div class="eico">🌱</div>
+    <h3 id="emp-h">Upload a plant photo to begin</h3>
+    <p id="emp-p">Supports leaves, stems, fruits — any visible symptom area</p>
+    <p class="hi" id="emp-hi" style="margin-top:4px">पत्ती, तना, फल — कोई भी लक्षण वाली जगह की फोटो लें</p>
+  </div>
+
+</div>
+
+<script>
+/* ─────────────────────────────────────────────────────────
+   STATE
+───────────────────────────────────────────────────────── */
+let LANG = 'en';
+let currentDisease = null;   // { disease_name, probability, description }
+let activeTab      = null;
+let sectionCache   = {};     // tab → full text (so we don't re-fetch)
+
+/* ─────────────────────────────────────────────────────────
+   LANGUAGE
+───────────────────────────────────────────────────────── */
+const TXT = {
+  en: {
+    nav_sub:   'DISEASE.DETECTION.SYSTEM',
+    hb:        'PLANT.ID v3 · LLAMA3 AI ANALYSIS',
+    hero_p:    'Upload a photo of the infected plant. AI will detect the disease and give you full treatment advice.',
+    up_title:  'Drop plant photo here',
+    up_sub:    'or click to browse · JPG, PNG, WEBP · max 10MB',
+    sb_lbl:    'Scan for Disease',
+    sc_title:  'ANALYSING PLANT',
+    sc_sub:    'Sending to Plant.id API · Running disease detection',
+    emp_h:     'Upload a plant photo to begin',
+    emp_p:     'Supports leaves, stems, fruits — any visible symptom area',
+    crop_ph:   'Crop name (optional) — e.g. Tomato, Wheat…',
+    scan_again:'🔄 Scan Another',
+    disease_lbl: 'DISEASE DETECTED',
+    healthy_lbl: 'PLANT IS HEALTHY',
+    conf_lbl:  'Confidence',
+    other_lbl: 'Other possibilities',
+    tabs: [
+      { id:'overview',   icon:'🔍', label:'Overview'   },
+      { id:'causes',     icon:'⚠️', label:'Causes'     },
+      { id:'prevention', icon:'🛡️', label:'Prevention' },
+      { id:'treatment',  icon:'💊', label:'Treatment'  },
+      { id:'spray',      icon:'🌿', label:'Spray Schedule' },
+    ],
+  },
+  hi: {
+    nav_sub:   'रोग.पहचान.प्रणाली',
+    hb:        'PLANT.ID v3 · LLAMA3 AI विश्लेषण',
+    hero_p:    'संक्रमित पौधे की फोटो अपलोड करें। AI बीमारी पहचानकर पूरा इलाज बताएगा।',
+    up_title:  'यहाँ पौधे की फोटो डालें',
+    up_sub:    'या ब्राउज़ करने के लिए क्लिक करें · JPG, PNG · अधिकतम 10MB',
+    sb_lbl:    'बीमारी पहचानें',
+    sc_title:  'जाँच हो रही है',
+    sc_sub:    'Plant.id API पर भेजा जा रहा है · रोग पहचान चल रही है',
+    emp_h:     'शुरू करने के लिए पौधे की फोटो अपलोड करें',
+    emp_p:     'पत्ती, तना, फल — कोई भी लक्षण वाली जगह',
+    crop_ph:   'फसल का नाम (वैकल्पिक) — जैसे टमाटर, गेहूँ…',
+    scan_again:'🔄 दूसरा स्कैन करें',
+    disease_lbl: 'रोग पहचाना गया',
+    healthy_lbl: 'पौधा स्वस्थ है',
+    conf_lbl:  'विश्वास',
+    other_lbl: 'अन्य संभावनाएं',
+    tabs: [
+      { id:'overview',   icon:'🔍', label:'अवलोकन'     },
+      { id:'causes',     icon:'⚠️', label:'कारण'       },
+      { id:'prevention', icon:'🛡️', label:'रोकथाम'    },
+      { id:'treatment',  icon:'💊', label:'उपचार'      },
+      { id:'spray',      icon:'🌿', label:'स्प्रे शेड्यूल' },
+    ],
+  },
+};
+
+function t(k) { return TXT[LANG][k] || TXT.en[k]; }
+
+function setLang(l) {
+  LANG = l;
+  sectionCache = {};  // clear cache on lang switch
+  document.getElementById('lt-en').classList.toggle('active', l==='en');
+  document.getElementById('lt-hi').classList.toggle('active', l==='hi');
+
+  // Update static text
+  document.getElementById('nav-sub').textContent     = t('nav_sub');
+  document.getElementById('hb-text').textContent     = t('hb');
+  document.getElementById('hero-hi').style.display   = l==='hi' ? 'block' : '';
+  document.getElementById('hero-p').textContent      = t('hero_p');
+  document.getElementById('up-title').textContent    = t('up_title');
+  document.getElementById('up-title').className      = `upload-title${l==='hi'?' hi':''}`;
+  document.getElementById('up-sub').innerHTML        = l==='en'
+    ? `or <span>click to browse</span> · JPG, PNG, WEBP · max 10MB`
+    : `या <span>ब्राउज़ के लिए क्लिक करें</span> · JPG, PNG · अधिकतम 10MB`;
+  document.getElementById('sb-lbl').textContent      = t('sb_lbl');
+  document.getElementById('sc-title').innerHTML      = t('sc_title') + `<span class="scan-dots"><span>.</span><span>.</span><span>.</span></span>`;
+  document.getElementById('sc-sub').textContent      = t('sc_sub');
+  document.getElementById('emp-h').textContent       = t('emp_h');
+  document.getElementById('emp-p').textContent       = t('emp_p');
+  document.getElementById('crop-name').placeholder   = t('crop_ph');
+  document.getElementById('crop-name').className     = `crop-inp${l==='hi'?' hi':''}`;
+
+  // Rebuild tabs and re-render result if present
+  if (currentDisease) {
+    renderTabs();
+    if (activeTab) loadSection(activeTab);
+  }
+}
+
+/* ─────────────────────────────────────────────────────────
+   FILE HANDLING
+───────────────────────────────────────────────────────── */
+let selectedFile = null;
+
+function fileSelected(e) {
+  const file = e.target.files[0];
+  if (file) loadPreview(file);
+}
+
+function dragOver(e) {
+  e.preventDefault();
+  document.getElementById('upload-zone').classList.add('drag-over');
+}
+function dragLeave() {
+  document.getElementById('upload-zone').classList.remove('drag-over');
+}
+function dropFile(e) {
+  e.preventDefault();
+  dragLeave();
+  const file = e.dataTransfer.files[0];
+  if (file && file.type.startsWith('image/')) loadPreview(file);
+}
+
+function loadPreview(file) {
+  selectedFile = file;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    const preview = document.getElementById('img-preview');
+    preview.src   = ev.target.result;
+    preview.style.display = 'block';
+    document.getElementById('upload-placeholder').style.display = 'none';
+    document.getElementById('upload-zone').classList.add('has-image');
+  };
+  reader.readAsDataURL(file);
+  document.getElementById('scan-btn').disabled = false;
+  resetResults();
+}
+
+/* ─────────────────────────────────────────────────────────
+   SCAN
+───────────────────────────────────────────────────────── */
+async function runScan() {
+  if (!selectedFile) return;
+
+  setBusy(true);
+  document.getElementById('scan-overlay').style.display = 'block';
+  document.getElementById('result-section').style.display = 'none';
+  document.getElementById('empty-state').style.display = 'none';
+
+  const formData = new FormData();
+  formData.append('image', selectedFile);
+
+  try {
+    const res  = await fetch('/crop-doctor/api/detect', { method: 'POST', body: formData });
+    const data = await res.json();
+
+    document.getElementById('scan-overlay').style.display = 'none';
+
+    if (data.error) {
+      alert('Detection error: ' + data.error);
+      setBusy(false);
+      return;
+    }
+
+    renderResult(data);
+  } catch(e) {
+    document.getElementById('scan-overlay').style.display = 'none';
+    alert('Error: ' + e.message);
+    setBusy(false);
+  }
+}
+
+/* ─────────────────────────────────────────────────────────
+   RENDER RESULT
+───────────────────────────────────────────────────────── */
+function renderResult(data) {
+  setBusy(false);
+  sectionCache = {};
+  activeTab    = null;
+
+  const section = document.getElementById('result-section');
+  section.style.display = 'block';
+
+  if (data.healthy) {
+    currentDisease = null;
+    document.getElementById('result-card').innerHTML = `
+      <div class="result-card healthy" style="animation:rise .4s ease">
+        <div class="rc-top">
+          <div class="rc-icon">✅</div>
+          <div class="rc-body">
+            <div class="rc-label">${LANG==='hi'?'पौधा स्वस्थ है':t('healthy_lbl')}</div>
+            <div class="rc-name" style="color:var(--green)">${LANG==='hi'?'कोई बीमारी नहीं मिली':'No Disease Found'}</div>
+            <div style="font-size:.85rem;color:var(--muted);margin-top:8px">
+              ${LANG==='hi'?'आपका पौधा स्वस्थ दिख रहा है। किसी बेहतर रोशनी में या पास से फोटो लेकर दोबारा कोशिश करें।'
+              :'Your plant appears healthy. Try again with a clearer, closer photo if symptoms are present.'}
+            </div>
+          </div>
+        </div>
+        <button class="scan-again" onclick="scanAgain()">🔄 ${t('scan_again')}</button>
+      </div>`;
+    document.getElementById('ai-section').style.display = 'none';
+    return;
+  }
+
+  // Disease found
+  currentDisease = {
+    disease_name: data.disease_name,
+    probability:  data.probability,
+    description:  data.description || '',
+  };
+
+  // Confidence bar (animate after render)
+  const confW = Math.min(data.probability, 100);
+
+  document.getElementById('result-card').innerHTML = `
+    <div class="result-card disease" style="animation:rise .4s ease">
+      <div class="rc-top">
+        <div class="rc-icon">🦠</div>
+        <div class="rc-body">
+          <div class="rc-label">${t('disease_lbl')}</div>
+          <div class="rc-name">${data.disease_name}</div>
+          <div class="rc-conf">
+            <div class="conf-bar"><div class="conf-fill" id="conf-fill" style="width:0%"></div></div>
+            <span class="conf-pct">${data.probability}%</span>
+            <span style="font-size:.75rem;color:var(--muted)">${t('conf_lbl')}</span>
+          </div>
+        </div>
+      </div>
+      ${data.suggestions && data.suggestions.length > 1 ? `
+        <div class="suggestions">
+          <div class="sug-label">${t('other_lbl')}</div>
+          ${data.suggestions.slice(1,4).map(s=>`
+            <div class="sug-item">
+              <span class="sug-name">${s.name}</span>
+              <div class="sug-mini-bar"><div class="sug-mini-fill" style="width:${s.probability}%"></div></div>
+              <span class="sug-pct">${s.probability}%</span>
+            </div>`).join('')}
+        </div>` : ''}
+      <button class="scan-again" onclick="scanAgain()">🔄 ${t('scan_again')}</button>
+    </div>`;
+
+  // Animate confidence bar
+  requestAnimationFrame(() => {
+    setTimeout(() => {
+      const el = document.getElementById('conf-fill');
+      if (el) el.style.width = confW + '%';
+    }, 100);
+  });
+
+  document.getElementById('ai-section').style.display = 'block';
+  renderTabs();
+  // Auto-load overview
+  loadSection('overview');
+}
+
+/* ─────────────────────────────────────────────────────────
+   TABS
+───────────────────────────────────────────────────────── */
+function renderTabs() {
+  const tabs   = t('tabs');
+  const tabsEl = document.getElementById('tabs');
+  tabsEl.innerHTML = tabs.map(tab => `
+    <button class="tab${LANG==='hi'?' hi':''}${tab.id===activeTab?' active':''}"
+      id="tab-${tab.id}" onclick="loadSection('${tab.id}')">
+      ${tab.icon} ${tab.label}
+    </button>`).join('');
+}
+
+/* ─────────────────────────────────────────────────────────
+   LOAD AI SECTION
+───────────────────────────────────────────────────────── */
+async function loadSection(section) {
+  if (!currentDisease) return;
+
+  // Update active tab
+  activeTab = section;
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  const tabEl = document.getElementById(`tab-${section}`);
+  if (tabEl) tabEl.classList.add('active');
+
+  // Serve from cache
+  const cacheKey = `${section}_${LANG}`;
+  if (sectionCache[cacheKey]) {
+    const out = document.getElementById('ai-output');
+    out.className = LANG==='hi' ? 'hi' : '';
+    out.innerHTML = formatText(sectionCache[cacheKey]);
+    setStatus('CACHED', false);
+    return;
+  }
+
+  const out = document.getElementById('ai-output');
+  out.className = LANG==='hi' ? 'hi' : '';
+  out.innerHTML = '<span class="cur"></span>';
+  setStatus('GENERATING', true);
+
+  try {
+    const resp = await fetch('/crop-doctor/api/explain/stream', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({
+        disease_name: currentDisease.disease_name,
+        probability:  currentDisease.probability,
+        description:  currentDisease.description,
+        section,
+        lang:         LANG,
+        crop_name:    document.getElementById('crop-name').value.trim(),
+      }),
+    });
+
+    const reader  = resp.body.getReader();
+    const decoder = new TextDecoder();
+    let buf='', text='';
+
+    while (true) {
+      const {done, value} = await reader.read();
+      if (done) break;
+      buf += decoder.decode(value, {stream:true});
+      const parts = buf.split('\n\n'); buf = parts.pop();
+      for (const part of parts) {
+        if (!part.startsWith('data:')) continue;
+        try {
+          const obj = JSON.parse(part.slice(5).trim());
+          if (obj.error) { out.textContent = '⚠️ ' + obj.error; setStatus('ERROR', false); return; }
+          if (obj.token) {
+            text += obj.token;
+            out.innerHTML = formatText(text) + '<span class="cur"></span>';
+            scrollToOutput();
+          }
+          if (obj.done) {
+            out.innerHTML = formatText(text);
+            sectionCache[cacheKey] = text;
+            setStatus('DONE', false);
+          }
+        } catch(_) {}
+      }
+    }
+    if (!text) out.textContent = LANG==='hi' ? 'कोई जवाब नहीं मिला।' : 'No response.';
+  } catch(e) {
+    out.textContent = '⚠️ ' + e.message;
+    setStatus('ERROR', false);
+  }
+}
+
+/* ─────────────────────────────────────────────────────────
+   HELPERS
+───────────────────────────────────────────────────────── */
+function setStatus(txt, live) {
+  const dot = document.getElementById('ai-dot');
+  document.getElementById('ai-status-txt').textContent = txt;
+  live ? dot.classList.add('live') : dot.classList.remove('live');
+}
+
+function scrollToOutput() {
+  const el = document.getElementById('ai-output');
+  el.scrollIntoView({behavior:'smooth', block:'nearest'});
+}
+
+function setBusy(on) {
+  document.getElementById('scan-btn').disabled = on;
+  document.getElementById('spin').style.display = on ? 'block' : 'none';
+  document.getElementById('sb-ico').style.display = on ? 'none' : 'inline';
+  document.getElementById('sb-lbl').textContent = on
+    ? (LANG==='hi' ? 'जाँच हो रही है…' : 'Scanning…')
+    : t('sb_lbl');
+}
+
+function resetResults() {
+  currentDisease = null; sectionCache = {}; activeTab = null;
+  document.getElementById('result-section').style.display = 'none';
+  document.getElementById('empty-state').style.display = 'none';
+}
+
+function scanAgain() {
+  selectedFile = null;
+  const preview = document.getElementById('img-preview');
+  preview.style.display = 'none'; preview.src = '';
+  document.getElementById('upload-placeholder').style.display = 'block';
+  document.getElementById('upload-zone').classList.remove('has-image');
+  document.getElementById('scan-btn').disabled = true;
+  document.getElementById('file-input').value = '';
+  resetResults();
+  document.getElementById('empty-state').style.display = 'block';
+}
+
+function formatText(txt) {
+  return txt
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>')
+    .replace(/\*(.*?)\*/g,'<em>$1</em>')
+    .replace(/^#{1,3}\s+(.+)$/gm,'<strong style="font-size:1rem;display:block;margin:10px 0 4px;color:#fff">$1</strong>')
+    .replace(/^[-•]\s+(.+)$/gm,'<li style="margin:3px 0">$1</li>')
+    .replace(/(<li.*<\/li>)/s,'<ul style="padding-left:18px;margin:8px 0">$1</ul>')
+    .replace(/\n\n/g,'<br><br>').replace(/\n/g,'<br>');
+}
+</script>
+</body>
+</html>

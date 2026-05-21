@@ -1,0 +1,676 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Kisan AI - Farming Assistant</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,600;0,700;1,600&family=Outfit:wght@300;400;500;600;700;800&family=Noto+Sans+Devanagari:wght@400;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+<!-- ═══════════════════════════════════════════════════
+     ORIGINAL CSS LINK — keep for any existing selectors
+     the backend may depend on
+════════════════════════════════════════════════════ -->
+<link rel="stylesheet" href="/assistant/static/css/style.css" />
+
+<style>
+/* ═══════════════════════════════════════════════════
+   DASHBOARD DESIGN SYSTEM — overlays style.css
+   Keeps all existing class names, adds visual layer
+════════════════════════════════════════════════════ */
+:root{
+  --bg:#060d07;--bg2:#0b1a0d;--surface:#0f2211;--surface2:#152a17;
+  --green:#1db954;--green2:#16a34a;--emerald:#34d399;--lime:#a3e635;
+  --gold:#f59e0b;--gold2:#fbbf24;--amber:#f97316;
+  --cyan:#00d4ff;--blue:#60a5fa;
+  --white:#ffffff;--text:#e8f5e9;--text-mid:#a7c4aa;--text-muted:#5a7a5d;
+  --border:rgba(52,211,153,0.12);--border-gold:rgba(245,158,11,0.18);
+  --r:18px;--r2:14px;
+}
+
+/* ══ RESET + BASE ══ */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html{scroll-behavior:smooth;}
+body{
+  font-family:'Outfit',sans-serif;
+  background:var(--bg);
+  color:var(--text);
+  min-height:100vh;
+  overflow-x:hidden;
+  cursor:none;
+}
+
+/* ══ NOISE OVERLAY ══ */
+body::before{
+  content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
+  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='4'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  opacity:.025;
+}
+
+/* ══ THREE.JS CANVAS ══ */
+#three-canvas{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;pointer-events:none;}
+
+/* ══ CUSTOM CURSOR ══ */
+#cursor{position:fixed;width:10px;height:10px;border-radius:50%;background:var(--gold);pointer-events:none;z-index:9999;transform:translate(-50%,-50%);mix-blend-mode:screen;}
+#cursor-ring{position:fixed;width:38px;height:38px;border-radius:50%;border:1.5px solid rgba(245,158,11,.45);pointer-events:none;z-index:9998;transform:translate(-50%,-50%);transition:width .3s,height .3s,border-color .3s;}
+
+/* ══ PAGE WRAPPER ══ */
+.page{
+  max-width:860px;margin:0 auto;
+  padding:0 2rem 5rem;
+  position:relative;z-index:2;
+}
+
+/* ══ BREADCRUMB ══ */
+.breadcrumb{
+  padding:20px 0 0;
+  display:flex;align-items:center;gap:8px;
+  font-family:'Space Mono',monospace;font-size:.68rem;
+  color:var(--text-muted);letter-spacing:.06em;
+}
+.breadcrumb a{color:var(--text-muted);text-decoration:none;transition:color .2s;}
+.breadcrumb a:hover{color:var(--emerald);}
+.breadcrumb span{opacity:.4;}
+
+/* ══ HERO ══ */
+.hero{
+  padding:3rem 0 2.5rem;
+  display:flex;align-items:center;justify-content:space-between;gap:24px;
+  animation:fadeUp .7s cubic-bezier(0.16,1,.3,1) both;
+}
+@keyframes fadeUp{from{opacity:0;transform:translateY(28px);}to{opacity:1;transform:translateY(0);}}
+.hero-badge{
+  display:inline-flex;align-items:center;gap:8px;
+  background:rgba(52,211,153,.08);border:1px solid rgba(52,211,153,.22);
+  border-radius:50px;padding:6px 16px;
+  font-family:'Space Mono',monospace;font-size:.68rem;font-weight:700;
+  color:var(--emerald);letter-spacing:.1em;text-transform:uppercase;
+  margin-bottom:14px;
+}
+.hero-badge::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--emerald);box-shadow:0 0 8px var(--emerald);animation:blink 2s infinite;flex-shrink:0;}
+@keyframes blink{0%,100%{opacity:1;}50%{opacity:.3;}}
+.hero h1{
+  font-family:'Cormorant Garamond',serif;
+  font-size:clamp(2.2rem,5vw,3.5rem);font-weight:700;
+  color:var(--white);line-height:1.08;letter-spacing:-.02em;
+  margin-bottom:12px;
+}
+.hero h1 em{
+  font-style:italic;
+  background:linear-gradient(135deg,var(--gold) 0%,var(--gold2) 40%,var(--lime) 100%);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  background-size:200% auto;animation:gShift 4s ease infinite;
+}
+@keyframes gShift{0%{background-position:0% 50%;}50%{background-position:100% 50%;}100%{background-position:0% 50%;}}
+.hero-sub{font-size:.9rem;color:var(--text-muted);line-height:1.75;max-width:420px;margin-bottom:16px;}
+.lang-pills{display:flex;gap:8px;flex-wrap:wrap;}
+.lang-pill{
+  display:inline-flex;align-items:center;gap:6px;
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:50px;padding:6px 14px;font-size:.78rem;
+  color:var(--text-muted);font-weight:500;transition:all .2s;
+}
+.lang-pill:hover{border-color:rgba(52,211,153,.3);color:var(--emerald);}
+.hero-icon{
+  font-size:5rem;flex-shrink:0;
+  animation:floatIcon 3s ease-in-out infinite;
+  filter:drop-shadow(0 0 20px rgba(52,211,153,.25));
+}
+@keyframes floatIcon{0%,100%{transform:translateY(0) rotate(-3deg);}50%{transform:translateY(-14px) rotate(3deg);}}
+
+/* ══ MODE TABS ══ */
+.mode-tabs{
+  display:grid;grid-template-columns:1fr 1fr;gap:14px;
+  margin-bottom:22px;
+  animation:fadeUp .7s cubic-bezier(0.16,1,.3,1) .1s both;
+}
+.mode-tab{
+  background:var(--surface);border:1.5px solid var(--border);
+  border-radius:var(--r);padding:20px 22px;
+  text-align:left;cursor:none;transition:all .35s cubic-bezier(.34,1.56,.64,1);
+  position:relative;overflow:hidden;font-family:'Outfit',sans-serif;
+}
+.mode-tab::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:2px;
+  opacity:0;transition:opacity .3s;
+}
+.chat-tab::before{background:linear-gradient(90deg,transparent,var(--emerald),transparent);}
+.voice-tab::before{background:linear-gradient(90deg,transparent,var(--gold2),transparent);}
+.mode-tab:hover,.mode-tab.active{transform:translateY(-4px);}
+.mode-tab.active{border-color:rgba(52,211,153,.3);}
+.mode-tab.active::before,.mode-tab:hover::before{opacity:1;}
+.mode-tab.active.voice-tab{border-color:rgba(245,158,11,.3);}
+.mode-tab:hover{box-shadow:0 16px 40px rgba(0,0,0,.35);}
+.chat-tab.active,.chat-tab:hover{box-shadow:0 16px 40px rgba(29,185,84,.1);}
+.voice-tab.active,.voice-tab:hover{box-shadow:0 16px 40px rgba(245,158,11,.1);}
+.tab-icon{font-size:2rem;display:block;margin-bottom:10px;transition:transform .3s cubic-bezier(.34,1.56,.64,1);}
+.mode-tab:hover .tab-icon,.mode-tab.active .tab-icon{transform:scale(1.15) rotate(-5deg);}
+.tab-title{font-family:'Cormorant Garamond',serif;font-size:1.2rem;font-weight:700;color:var(--white);margin-bottom:5px;}
+.tab-desc{font-size:.8rem;color:var(--text-muted);line-height:1.55;margin-bottom:6px;}
+.tab-langs{font-family:'Space Mono',monospace;font-size:.65rem;color:var(--text-muted);letter-spacing:.06em;opacity:.7;}
+.chat-tab.active .tab-title{color:var(--emerald);}
+.voice-tab.active .tab-title{color:var(--gold2);}
+
+/* ══ PANEL ══ */
+.panel{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--r);overflow:hidden;
+  box-shadow:0 8px 32px rgba(0,0,0,.4);
+  animation:fadeUp .7s cubic-bezier(0.16,1,.3,1) .2s both;
+  position:relative;
+}
+.panel::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:2px;
+  background:linear-gradient(90deg,transparent,var(--emerald),var(--gold2),transparent);
+}
+
+/* ══ PANEL HEADER ══ */
+.panel-header{
+  background:var(--bg2);border-bottom:1px solid var(--border);
+  padding:14px 20px;display:flex;align-items:center;
+  justify-content:space-between;gap:12px;flex-wrap:wrap;
+}
+.panel-header-left{display:flex;align-items:center;gap:10px;font-size:.82rem;font-weight:600;color:var(--text-mid);}
+.status-dot{
+  width:8px;height:8px;border-radius:50%;
+  background:var(--emerald);flex-shrink:0;
+  box-shadow:0 0 8px var(--emerald);
+  animation:statusPulse 2s ease-in-out infinite;
+}
+@keyframes statusPulse{0%,100%{box-shadow:0 0 8px var(--emerald);}50%{box-shadow:0 0 16px var(--emerald),0 0 24px rgba(52,211,153,.3);}}
+.memory-badge{
+  display:inline-flex;align-items:center;gap:5px;
+  background:rgba(52,211,153,.07);border:1px solid rgba(52,211,153,.15);
+  border-radius:50px;padding:3px 10px;
+  font-family:'Space Mono',monospace;font-size:.64rem;
+  color:var(--text-muted);letter-spacing:.04em;
+}
+.header-right{display:flex;align-items:center;gap:10px;}
+
+/* Lang toggle */
+.lang-toggle{
+  display:flex;background:rgba(255,255,255,.04);
+  border:1px solid var(--border);border-radius:50px;
+  padding:3px;gap:2px;
+}
+.ltbtn{
+  padding:5px 13px;border-radius:50px;font-size:.74rem;font-weight:700;
+  border:none;cursor:none;background:transparent;
+  color:var(--text-muted);transition:all .22s;
+}
+.ltbtn.active{background:linear-gradient(135deg,var(--green2),var(--emerald));color:white;box-shadow:0 2px 10px rgba(29,185,84,.4);}
+
+/* Clear button */
+.clear-btn{
+  padding:6px 16px;background:transparent;
+  border:1px solid var(--border);border-radius:50px;
+  color:var(--text-muted);font-size:.74rem;font-weight:600;
+  cursor:none;transition:all .2s;font-family:'Outfit',sans-serif;
+}
+.clear-btn:hover{border-color:rgba(239,68,68,.3);color:#f87171;background:rgba(239,68,68,.05);}
+
+/* ══ CHAT MESSAGES ══ */
+.chat-messages{
+  padding:18px 20px;min-height:380px;max-height:480px;
+  overflow-y:auto;display:flex;flex-direction:column;gap:14px;
+  scroll-behavior:smooth;
+}
+.chat-messages::-webkit-scrollbar{width:4px;}
+.chat-messages::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px;}
+
+/* Message bubbles — keep existing class names, override styles */
+.msg,.message{display:flex;gap:10px;align-items:flex-end;animation:msgIn .25s ease both;}
+.msg.user,.message.user{flex-direction:row-reverse;}
+@keyframes msgIn{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
+
+.msg-av,.avatar{
+  width:32px;height:32px;border-radius:50%;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;font-size:.88rem;
+}
+.msg-av.user,.avatar.user{background:linear-gradient(135deg,#92400e,var(--gold));}
+.msg-av.bot,.avatar.bot{background:linear-gradient(135deg,var(--green2),var(--emerald));box-shadow:0 0 10px rgba(29,185,84,.3);}
+
+.msg-bubble,.bubble{
+  max-width:72%;padding:11px 16px;border-radius:18px;
+  font-size:.875rem;line-height:1.65;word-break:break-word;
+}
+.msg.user .msg-bubble,
+.message.user .bubble{
+  background:linear-gradient(135deg,var(--green2),var(--emerald));
+  color:white;border-bottom-right-radius:5px;
+}
+.msg.bot .msg-bubble,
+.message.bot .bubble{
+  background:var(--surface2);color:var(--text);
+  border:1px solid var(--border);border-bottom-left-radius:5px;
+}
+
+/* Streaming cursor */
+.typing-cursor,.cursor{
+  display:inline-block;width:8px;height:.9em;
+  background:var(--cyan);margin-left:2px;
+  animation:blink .7s step-end infinite;vertical-align:text-bottom;
+}
+
+/* Typing indicator */
+.typing-dots,.dots{display:flex;gap:4px;padding:3px 2px;}
+.typing-dots span,.dots span{
+  width:6px;height:6px;border-radius:50%;
+  background:var(--emerald);animation:dot 1.2s infinite ease-in-out;
+}
+.typing-dots span:nth-child(2),.dots span:nth-child(2){animation-delay:.2s;}
+.typing-dots span:nth-child(3),.dots span:nth-child(3){animation-delay:.4s;}
+@keyframes dot{0%,80%,100%{transform:scale(.55);opacity:.3;}40%{transform:scale(1);opacity:1;}}
+
+/* ══ CHAT INPUT ══ */
+.chat-input-row{
+  padding:12px 16px 16px;border-top:1px solid var(--border);
+  display:flex;gap:10px;align-items:flex-end;
+  background:var(--bg2);
+}
+.chat-input{
+  flex:1;background:var(--surface);border:1.5px solid var(--border);
+  border-radius:14px;color:var(--text);padding:11px 15px;
+  font-size:.875rem;font-family:'Outfit',sans-serif;
+  resize:none;outline:none;transition:all .2s;
+  max-height:120px;min-height:44px;line-height:1.5;
+}
+.chat-input:focus{border-color:rgba(52,211,153,.4);box-shadow:0 0 0 4px rgba(52,211,153,.06);}
+.chat-input::placeholder{color:var(--text-muted);font-size:.84rem;}
+.send-btn{
+  width:44px;height:44px;border-radius:13px;border:none;cursor:none;
+  flex-shrink:0;background:linear-gradient(135deg,var(--green2),var(--emerald));
+  color:white;font-size:1rem;display:flex;align-items:center;justify-content:center;
+  transition:all .25s cubic-bezier(.34,1.56,.64,1);
+  box-shadow:0 4px 14px rgba(29,185,84,.35);
+}
+.send-btn:hover:not(:disabled){transform:scale(1.1);box-shadow:0 6px 20px rgba(29,185,84,.5);}
+.send-btn:disabled{opacity:.4;cursor:not-allowed;transform:none;}
+
+/* ══ VOICE PANEL ══ */
+.voice-area{
+  padding:32px 24px 28px;
+  display:flex;flex-direction:column;align-items:center;gap:18px;
+}
+.voice-lang-hint{
+  font-family:'Space Mono',monospace;font-size:.72rem;
+  color:var(--text-muted);letter-spacing:.06em;
+}
+.voice-lang-hint strong{color:var(--emerald);}
+
+/* Voice button ring system */
+.voice-ring{position:relative;width:140px;height:140px;display:flex;align-items:center;justify-content:center;}
+.voice-btn-wrap{position:relative;width:140px;height:140px;display:flex;align-items:center;justify-content:center;}
+.ring{
+  position:absolute;border-radius:50%;border:1.5px solid rgba(52,211,153,.2);
+  animation:ringExpand 2.5s ease-out infinite;
+}
+.ring:nth-child(1){width:80px;height:80px;animation-delay:0s;}
+.ring:nth-child(2){width:110px;height:110px;animation-delay:.5s;}
+.ring:nth-child(3){width:140px;height:140px;animation-delay:1s;}
+@keyframes ringExpand{0%{opacity:.8;transform:scale(.8);}100%{opacity:0;transform:scale(1.1);}}
+
+.voice-btn{
+  width:72px;height:72px;border-radius:50%;border:none;cursor:none;
+  background:linear-gradient(145deg,var(--green2),var(--emerald));
+  color:white;font-size:1.8rem;z-index:2;position:relative;
+  box-shadow:0 0 28px rgba(29,185,84,.5),inset 0 1px 0 rgba(255,255,255,.15);
+  transition:all .3s cubic-bezier(.34,1.56,.64,1);
+}
+.voice-btn:hover{transform:scale(1.1);box-shadow:0 0 40px rgba(29,185,84,.65);}
+.voice-btn.listening{
+  background:linear-gradient(145deg,var(--gold),var(--amber));
+  box-shadow:0 0 28px rgba(245,158,11,.5),inset 0 1px 0 rgba(255,255,255,.15);
+  animation:listenPulse 1s ease-in-out infinite;
+}
+@keyframes listenPulse{0%,100%{transform:scale(1);}50%{transform:scale(1.06);}}
+
+/* Voice status / sub */
+.voice-status{
+  font-family:'Cormorant Garamond',serif;font-size:1.35rem;
+  font-weight:700;color:var(--white);
+}
+.voice-sub{font-size:.82rem;color:var(--text-muted);text-align:center;max-width:320px;line-height:1.65;}
+
+/* Voice transcripts */
+.voice-transcripts{
+  width:100%;display:grid;grid-template-columns:1fr 1fr;gap:14px;
+  margin-top:6px;
+}
+.transcript-label{
+  font-family:'Space Mono',monospace;font-size:.64rem;
+  text-transform:uppercase;letter-spacing:.1em;
+  color:var(--text-muted);margin-bottom:7px;
+}
+.transcript-label.green{color:var(--emerald);}
+.voice-transcript-box{
+  background:var(--surface2);border:1px solid var(--border);
+  border-radius:var(--r2);padding:13px 16px;
+  font-size:.84rem;color:var(--text-mid);line-height:1.65;
+  min-height:72px;
+}
+.voice-transcript-box.reply{border-color:rgba(52,211,153,.18);}
+
+/* ══ TIP BAR ══ */
+.tip-bar{
+  display:flex;align-items:center;gap:10px;
+  background:rgba(245,158,11,.06);border:1px solid rgba(245,158,11,.15);
+  border-radius:var(--r2);padding:12px 18px;
+  font-size:.82rem;color:var(--gold2);
+  margin-top:18px;line-height:1.55;
+  animation:fadeUp .7s cubic-bezier(0.16,1,.3,1) .3s both;
+}
+
+/* ══ CONFIG NOTE ══ */
+.config-note{
+  font-family:'Space Mono',monospace;font-size:.65rem;
+  color:var(--text-muted);margin-top:14px;line-height:1.7;
+  opacity:.6;
+}
+.config-note code{
+  color:var(--emerald);background:rgba(52,211,153,.08);
+  padding:1px 6px;border-radius:4px;font-size:.62rem;
+}
+
+/* ══ RESPONSIVE ══ */
+@media(max-width:640px){
+  .page{padding:0 1.2rem 4rem;}
+  .hero{flex-direction:column;gap:16px;}
+  .hero-icon{font-size:3.5rem;}
+  .mode-tabs{grid-template-columns:1fr;}
+  .voice-transcripts{grid-template-columns:1fr;}
+}
+</style>
+</head>
+<body>
+
+<!-- ══ THREE.JS CANVAS ══ -->
+<canvas id="three-canvas"></canvas>
+
+<!-- ══ CUSTOM CURSOR ══ -->
+<div id="cursor"></div>
+<div id="cursor-ring"></div>
+
+<!-- ═══════════════════════════════════════════════════
+     ORIGINAL HTML — untouched
+════════════════════════════════════════════════════ -->
+<div class="page">
+
+  <nav class="breadcrumb">
+    <a href="/">Home</a><span>/</span>
+    AI Farming Assistant
+  </nav>
+
+  <div class="hero">
+    <div>
+      <div class="hero-badge">AI Powered</div>
+      <h1>Your <em>Kisan AI</em><br/>Farming Assistant</h1>
+      <p class="hero-sub">Get expert agronomist advice for your crops, soil, weather, and pests instantly, in your language.</p>
+      <div class="lang-pills">
+        <span class="lang-pill">&#x1F1EE;&#x1F1F3; &#x939;&#x93F;&#x902;&#x926;&#x940;</span>
+        <span class="lang-pill">&#x1F1EC;&#x1F1E7; English</span>
+      </div>
+    </div>
+    <div class="hero-icon">&#x1F33E;</div>
+  </div>
+
+  <div class="mode-tabs">
+    <button class="mode-tab chat-tab active" onclick="switchMode('chat')">
+      <span class="tab-icon">&#x1F4AC;</span>
+      <div class="tab-title">Chat with AI</div>
+      <div class="tab-desc">Type your question. Get a detailed, streaming response.</div>
+      <div class="tab-langs">Hindi &amp; English &middot; Real-time streaming</div>
+    </button>
+    <button class="mode-tab voice-tab" onclick="switchMode('voice')">
+      <span class="tab-icon">&#x1F3A4;</span>
+      <div class="tab-title">Talk with AI</div>
+      <div class="tab-desc">Speak your question and hear the answer read back.</div>
+      <div class="tab-langs">Hindi &amp; English &middot; Voice I/O</div>
+    </button>
+  </div>
+
+  <!-- CHAT PANEL -->
+  <div class="panel" id="chat-panel">
+    <div class="panel-header">
+      <div class="panel-header-left">
+        <div class="status-dot" id="chat-dot"></div>
+        <span id="chat-status-text">Kisan AI is online</span>
+        <span class="memory-badge" id="chat-memory-badge">loading...</span>
+      </div>
+      <div class="header-right">
+        <div class="lang-toggle">
+          <button class="ltbtn" id="chat-lt-en" onclick="setChatLang('en')">EN</button>
+          <button class="ltbtn active" id="chat-lt-hi" onclick="setChatLang('hi')">&#x939;&#x93F;</button>
+        </div>
+        <button class="clear-btn" onclick="clearChat()">Clear</button>
+      </div>
+    </div>
+    <div class="chat-messages" id="chat-messages"></div>
+    <div class="chat-input-row">
+      <textarea
+        class="chat-input" id="chat-input" rows="1"
+        placeholder="&#x909;&#x926;&#x93E;&#x939;&#x930;&#x923;: &#x92E;&#x947;&#x930;&#x940; &#x917;&#x947;&#x939;&#x942;&#x901; &#x92E;&#x947;&#x902; &#x92A;&#x940;&#x932;&#x93E;&#x92A;&#x928; &#x906; &#x930;&#x939;&#x93E; &#x939;&#x948; / Ask about your crops..."
+        onkeydown="handleChatKey(event)" oninput="autoResize(this)"
+      ></textarea>
+      <button class="send-btn" id="send-btn" onclick="sendChat()">&#x27A4;</button>
+    </div>
+  </div>
+
+  <!-- VOICE PANEL -->
+  <div class="panel" id="voice-panel" style="display:none;">
+    <div class="panel-header">
+      <div class="panel-header-left">
+        <div class="status-dot"></div>
+        Voice Assistant
+        <span class="memory-badge" id="voice-memory-badge">No memory yet</span>
+      </div>
+      <div class="header-right">
+        <div class="lang-toggle">
+          <button class="ltbtn" id="voice-lt-en" onclick="setVoiceLang('en')">EN</button>
+          <button class="ltbtn active" id="voice-lt-hi" onclick="setVoiceLang('hi')">&#x939;&#x93F;</button>
+        </div>
+        <button class="clear-btn" onclick="clearVoice()">Clear</button>
+      </div>
+    </div>
+    <div class="voice-area">
+      <div class="voice-lang-hint" id="voice-lang-hint">
+        Selected: <strong id="voice-lang-label">Hindi (&#x939;&#x93F;&#x902;&#x926;&#x940;)</strong>
+      </div>
+      <div class="voice-ring">
+        <div class="voice-btn-wrap" id="voice-btn-wrap">
+          <div class="ring"></div><div class="ring"></div><div class="ring"></div>
+          <button class="voice-btn" id="voice-btn" onclick="toggleVoice()">&#x1F3A4;</button>
+        </div>
+      </div>
+      <div class="voice-status" id="voice-status">Tap to Speak</div>
+      <div class="voice-sub" id="voice-sub">Choose a language, press the mic, ask your question.</div>
+      <div class="voice-transcripts" id="voice-transcripts" style="display:none;">
+        <div>
+          <div class="transcript-label">You said</div>
+          <div class="voice-transcript-box" id="user-transcript"></div>
+        </div>
+        <div>
+          <div class="transcript-label green">AI Reply</div>
+          <div class="voice-transcript-box reply" id="ai-transcript">Waiting...</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="tip-bar">
+    &#x1F4A1; <span><strong>Tip:</strong> Mention your crop, region, or specific problem for best results.</span>
+  </div>
+  <p class="config-note">
+    FastAPI router &middot; Ollama <code>llama3.2:latest</code> &middot;
+    History saved per language in <code>assistant/data/history.json</code>
+  </p>
+
+</div>
+
+<!-- ═══════════════════════════════════════════════════
+     ORIGINAL JS — untouched
+════════════════════════════════════════════════════ -->
+<script src="/assistant/static/js/app.js"></script>
+
+<!-- ══ DASHBOARD OVERLAY: CURSOR + THREE.JS ══ -->
+<script>
+/* ── CUSTOM CURSOR ─────────────────────────────────── */
+const cur = document.getElementById('cursor');
+const ring = document.getElementById('cursor-ring');
+let mx=0,my=0,rx=0,ry=0;
+document.addEventListener('mousemove', e => {
+  mx = e.clientX; my = e.clientY;
+  cur.style.left = mx + 'px';
+  cur.style.top  = my + 'px';
+});
+(function animR() {
+  rx += (mx - rx) * .12;
+  ry += (my - ry) * .12;
+  ring.style.left = rx + 'px';
+  ring.style.top  = ry + 'px';
+  requestAnimationFrame(animR);
+})();
+document.querySelectorAll('a,button,.mode-tab,.lang-pill,.voice-transcript-box').forEach(el => {
+  el.addEventListener('mouseenter', () => {
+    cur.style.width  = '18px'; cur.style.height = '18px';
+    ring.style.width = '56px'; ring.style.height= '56px';
+    ring.style.borderColor = 'rgba(245,158,11,.8)';
+  });
+  el.addEventListener('mouseleave', () => {
+    cur.style.width  = '10px'; cur.style.height = '10px';
+    ring.style.width = '38px'; ring.style.height= '38px';
+    ring.style.borderColor = 'rgba(245,158,11,.45)';
+  });
+});
+
+/* ── THREE.JS ──────────────────────────────────────── */
+(function () {
+  const canvas   = document.getElementById('three-canvas');
+  const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
+  renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+  renderer.setSize(innerWidth, innerHeight);
+
+  const scene  = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(60, innerWidth / innerHeight, .1, 1000);
+  camera.position.z = 5;
+
+  /* Particles — emerald + gold + cyan for AI/chat theme */
+  const N = 2200;
+  const geo = new THREE.BufferGeometry();
+  const pos = new Float32Array(N * 3);
+  const col = new Float32Array(N * 3);
+  for (let i = 0; i < N; i++) {
+    pos[i*3]   = (Math.random() - .5) * 22;
+    pos[i*3+1] = (Math.random() - .5) * 22;
+    pos[i*3+2] = (Math.random() - .5) * 12;
+    const g = Math.random();
+    if (g > .65)      { col[i*3]=.96; col[i*3+1]=.62; col[i*3+2]=.04; } // gold
+    else if (g > .32) { col[i*3]=.2;  col[i*3+1]=.83; col[i*3+2]=.6;  } // emerald
+    else              { col[i*3]=0;   col[i*3+1]=.83; col[i*3+2]=1;   } // cyan
+  }
+  geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+  geo.setAttribute('color',    new THREE.BufferAttribute(col, 3));
+  const pts = new THREE.Points(geo, new THREE.PointsMaterial({
+    size: .03, vertexColors: true, transparent: true, opacity: .55
+  }));
+  scene.add(pts);
+
+  /* Wireframe globe — right side */
+  const sphere = new THREE.Mesh(
+    new THREE.SphereGeometry(2.3, 18, 18),
+    new THREE.MeshBasicMaterial({ color: 0x34d399, wireframe: true, transparent: true, opacity: .04 })
+  );
+  sphere.position.set(4.5, .5, -2);
+  scene.add(sphere);
+
+  /* Gold torus orbit ring */
+  const tor = new THREE.Mesh(
+    new THREE.TorusGeometry(1.6, .008, 16, 80),
+    new THREE.MeshBasicMaterial({ color: 0xf59e0b, transparent: true, opacity: .22 })
+  );
+  tor.position.set(4.5, .5, -2);
+  tor.rotation.x = Math.PI / 4;
+  scene.add(tor);
+
+  /* Cyan torus — AI/data theme */
+  const tor2 = new THREE.Mesh(
+    new THREE.TorusGeometry(2.2, .005, 16, 80),
+    new THREE.MeshBasicMaterial({ color: 0x00d4ff, transparent: true, opacity: .1 })
+  );
+  tor2.position.set(4.5, .5, -2);
+  tor2.rotation.x = Math.PI / 3;
+  scene.add(tor2);
+
+  /* Floating chat bubble geometry (icosahedron) — left */
+  const ico = new THREE.Mesh(
+    new THREE.IcosahedronGeometry(1.4, 1),
+    new THREE.MeshBasicMaterial({ color: 0x34d399, wireframe: true, transparent: true, opacity: .05 })
+  );
+  ico.position.set(-4.5, .5, -2.5);
+  scene.add(ico);
+
+  /* Small orbiting dot — simulates a message flying */
+  const msgDot = new THREE.Mesh(
+    new THREE.SphereGeometry(.1, 8, 8),
+    new THREE.MeshBasicMaterial({ color: 0xfbbf24, transparent: true, opacity: .7 })
+  );
+  scene.add(msgDot);
+
+  /* Second smaller icosahedron */
+  const ico2 = new THREE.Mesh(
+    new THREE.IcosahedronGeometry(.9, 1),
+    new THREE.MeshBasicMaterial({ color: 0xf59e0b, wireframe: true, transparent: true, opacity: .04 })
+  );
+  ico2.position.set(-4, -1.5, -3);
+  scene.add(ico2);
+
+  let mx3 = 0, my3 = 0;
+  document.addEventListener('mousemove', e => {
+    mx3 = (e.clientX / innerWidth  - .5) * .5;
+    my3 = (e.clientY / innerHeight - .5) * .35;
+  });
+  window.addEventListener('resize', () => {
+    camera.aspect = innerWidth / innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(innerWidth, innerHeight);
+  });
+
+  const clock = new THREE.Clock();
+  (function loop() {
+    requestAnimationFrame(loop);
+    const t = clock.getElapsedTime();
+
+    pts.rotation.y = t * .03  + mx3 * .4;
+    pts.rotation.x = t * .015 + my3 * .25;
+
+    sphere.rotation.y = t * .1;
+    sphere.rotation.x = t * .05;
+
+    tor.rotation.z  = t * .15;
+    tor.rotation.y  = t * .05;
+    tor2.rotation.z = -t * .11;
+    tor2.rotation.y =  t * .07;
+
+    ico.rotation.y  = t * .18;
+    ico.rotation.x  = t * .1;
+    ico2.rotation.y = -t * .22;
+    ico2.rotation.z =  t * .12;
+
+    /* msg dot orbits the icosahedron */
+    const r = 2.2;
+    msgDot.position.set(
+      -4.5 + r * Math.cos(t * .7),
+       .5  + Math.sin(t * .9) * .5,
+      -2.5 + r * Math.sin(t * .7)
+    );
+
+    camera.position.x =  mx3 * .8;
+    camera.position.y = -my3 * .5;
+    camera.lookAt(0, 0, 0);
+    renderer.render(scene, camera);
+  })();
+})();
+</script>
+
+</body>
+</html>

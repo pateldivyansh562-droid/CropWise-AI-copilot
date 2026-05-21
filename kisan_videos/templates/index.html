@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Kisan Videos — Farming Knowledge</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --soil:#0f0d09; --soil2:#1a160f; --soil3:#241e14;
+  --gold:#c8951a; --gold2:#e8b84b; --gold3:#f5d07a;
+  --green:#2e6b3e; --green2:#3d8f52; --green3:#5ab86e; --green4:#a8e6b5;
+  --cream:#f4eed8; --muted:#7a6e5e;
+  --border:rgba(200,149,26,.18); --card:rgba(26,22,15,.9);
+  --r:14px;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--soil);color:var(--cream);font-family:'DM Sans',sans-serif;min-height:100vh;overflow-x:hidden}
+
+/* ── BG PARTICLES ── */
+#bg{position:fixed;inset:0;z-index:0;pointer-events:none;opacity:.3}
+
+/* ── LAYOUT ── */
+.page{position:relative;z-index:1;max-width:1200px;margin:0 auto;padding:40px 24px 80px}
+
+/* ── HEADER ── */
+.header{text-align:center;margin-bottom:48px}
+.back-link{display:inline-flex;align-items:center;gap:6px;color:var(--muted);font-size:12px;
+  text-decoration:none;border:1px solid var(--border);border-radius:20px;padding:5px 14px;
+  margin-bottom:24px;transition:all .2s}
+.back-link:hover{color:var(--gold2);border-color:rgba(200,149,26,.4)}
+.header-icon{font-size:56px;margin-bottom:12px;display:block;filter:drop-shadow(0 0 24px rgba(200,149,26,.4))}
+.header h1{font-family:'Playfair Display',serif;font-size:clamp(32px,5vw,52px);font-weight:900;
+  background:linear-gradient(90deg,var(--gold2),var(--green3),var(--gold3));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;line-height:1.1}
+.header p{color:var(--muted);font-size:15px;margin-top:10px}
+
+/* ── SEARCH BOX ── */
+.search-wrap{max-width:680px;margin:0 auto 48px;position:relative}
+.search-box{
+  display:flex;align-items:center;
+  background:var(--card);border:1.5px solid var(--border);border-radius:50px;
+  padding:6px 6px 6px 24px;gap:8px;
+  transition:border-color .2s,box-shadow .2s;
+}
+.search-box:focus-within{border-color:rgba(200,149,26,.5);box-shadow:0 0 0 4px rgba(200,149,26,.08)}
+.search-input{
+  flex:1;background:none;border:none;outline:none;
+  color:var(--cream);font-size:15px;font-family:'DM Sans',sans-serif;
+}
+.search-input::placeholder{color:var(--muted)}
+.search-btn{
+  background:linear-gradient(135deg,var(--green),var(--gold));border:none;
+  border-radius:40px;padding:10px 24px;color:#fff;font-size:14px;font-weight:500;
+  cursor:pointer;transition:transform .15s,opacity .15s;white-space:nowrap;
+  font-family:'DM Sans',sans-serif;
+}
+.search-btn:hover{transform:scale(1.04)}
+.search-btn:active{transform:scale(.97);opacity:.85}
+
+/* quick tags */
+.quick-tags{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:12px}
+.tag{
+  font-size:12px;padding:5px 14px;border-radius:20px;cursor:pointer;
+  background:rgba(200,149,26,.1);border:1px solid rgba(200,149,26,.2);
+  color:var(--gold3);transition:all .15s;
+}
+.tag:hover{background:rgba(200,149,26,.22);border-color:rgba(200,149,26,.45)}
+
+/* ── SMART QUERY CHIP ── */
+.smart-chip{
+  display:inline-flex;align-items:center;gap:8px;
+  background:rgba(46,107,62,.2);border:1px solid rgba(90,184,110,.25);
+  border-radius:8px;padding:8px 16px;margin-bottom:24px;font-size:12px;
+  color:var(--green4);font-family:'DM Mono',monospace;
+}
+
+/* ── RESULTS GRID ── */
+.results-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px}
+.results-title{font-family:'Playfair Display',serif;font-size:22px;color:var(--gold2)}
+.results-count{font-size:12px;color:var(--muted)}
+
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:20px}
+
+/* ── VIDEO CARD ── */
+.vcard{
+  background:var(--card);border:1px solid var(--border);border-radius:var(--r);
+  overflow:hidden;transition:transform .22s,border-color .22s,box-shadow .22s;
+  cursor:pointer;position:relative;
+}
+.vcard:hover{transform:translateY(-5px);border-color:rgba(200,149,26,.45);
+  box-shadow:0 16px 48px rgba(0,0,0,.5)}
+.vcard:hover .thumb-overlay{opacity:1}
+.vcard:hover .play-btn{transform:scale(1.1)}
+
+.thumb-wrap{position:relative;aspect-ratio:16/9;overflow:hidden;background:#111}
+.thumb-wrap img{width:100%;height:100%;object-fit:cover;transition:transform .4s;display:block}
+.vcard:hover .thumb-wrap img{transform:scale(1.05)}
+.thumb-overlay{position:absolute;inset:0;background:linear-gradient(0deg,rgba(0,0,0,.7) 0%,transparent 60%);opacity:.6;transition:opacity .3s}
+.play-btn{
+  position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  font-size:44px;filter:drop-shadow(0 4px 12px rgba(0,0,0,.6));
+  transition:transform .2s;
+}
+.duration-badge{
+  position:absolute;bottom:8px;right:8px;
+  background:rgba(0,0,0,.8);color:#fff;font-size:11px;
+  font-family:'DM Mono',monospace;padding:2px 8px;border-radius:4px;
+}
+
+.vcard-body{padding:16px 18px 18px}
+.vcard-title{font-size:14px;font-weight:500;color:var(--cream);line-height:1.45;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;margin-bottom:10px}
+.vcard-meta{display:flex;align-items:center;justify-content:space-between}
+.channel{font-size:11.5px;color:var(--muted);display:flex;align-items:center;gap:5px}
+.channel::before{content:'📺';font-size:11px}
+.views{font-size:11px;color:var(--muted)}
+.watch-btn{
+  display:block;margin:12px 18px 18px;
+  background:linear-gradient(90deg,rgba(46,107,62,.5),rgba(200,149,26,.25));
+  border:1px solid rgba(90,184,110,.3);border-radius:8px;padding:9px;
+  text-align:center;color:var(--green4);font-size:12.5px;font-weight:500;
+  text-decoration:none;transition:all .2s;
+}
+.watch-btn:hover{background:linear-gradient(90deg,rgba(46,107,62,.75),rgba(200,149,26,.4));color:#fff}
+
+/* ── EMPTY / ERROR STATES ── */
+.state-box{
+  text-align:center;padding:80px 20px;border:1px dashed var(--border);
+  border-radius:var(--r);background:rgba(255,255,255,.02);
+}
+.state-icon{font-size:52px;margin-bottom:16px;display:block}
+.state-title{font-family:'Playfair Display',serif;font-size:22px;color:var(--gold2);margin-bottom:8px}
+.state-sub{color:var(--muted);font-size:14px;line-height:1.6}
+
+/* ── HERO (no query yet) ── */
+.suggestions{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px;max-width:860px;margin:0 auto}
+.sug-card{
+  background:var(--card);border:1px solid var(--border);border-radius:12px;
+  padding:18px 16px;cursor:pointer;transition:all .2s;text-align:left;
+  display:flex;flex-direction:column;gap:6px;
+}
+.sug-card:hover{border-color:rgba(200,149,26,.4);transform:translateY(-2px)}
+.sug-icon{font-size:26px}
+.sug-title{font-size:13.5px;font-weight:500;color:var(--cream)}
+.sug-hint{font-size:11px;color:var(--muted)}
+
+/* ── LOADING SPINNER ── */
+.spinner{display:none;text-align:center;padding:60px 20px}
+.spinner.show{display:block}
+.spin-icon{font-size:40px;animation:spin 1.2s linear infinite;display:inline-block}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ── ANIMATIONS ── */
+@keyframes fade-up{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:none}}
+.vcard{animation:fade-up .4s ease both}
+
+@media(max-width:600px){
+  .grid{grid-template-columns:1fr}
+  .search-btn span{display:none}
+}
+</style>
+</head>
+<body>
+<canvas id="bg"></canvas>
+
+<div class="page">
+  <!-- Header -->
+  <div class="header">
+    <a href="/" class="back-link">← Back to Dashboard</a>
+    <span class="header-icon">🎥</span>
+    <h1>Farming Knowledge Videos</h1>
+    <p>Search in Hindi, Hinglish, or English — we'll find the best tutorials for you</p>
+  </div>
+
+  <!-- Search -->
+  <div class="search-wrap">
+    <form method="get" action="/videos/search" onsubmit="showLoader()">
+      <div class="search-box">
+        <input
+          class="search-input"
+          type="text"
+          name="q"
+          placeholder="e.g. गेहूं की खेती, tomato disease, drip irrigation…"
+          value="{{ query | e }}"
+          autocomplete="off"
+          id="q-input"
+        />
+        <button class="search-btn" type="submit">🔍 <span>Search</span></button>
+      </div>
+    </form>
+    <div class="quick-tags">
+      <span class="tag" onclick="setQ('wheat farming tips')">🌾 Wheat</span>
+      <span class="tag" onclick="setQ('tomato disease treatment')">🍅 Tomato</span>
+      <span class="tag" onclick="setQ('drip irrigation setup')">💧 Irrigation</span>
+      <span class="tag" onclick="setQ('organic fertilizer kheti')">🌿 Organic</span>
+      <span class="tag" onclick="setQ('aloo ki kheti')">🥔 Aloo</span>
+      <span class="tag" onclick="setQ('paddy rice cultivation India')">🌾 Paddy</span>
+      <span class="tag" onclick="setQ('soil health testing')">🌍 Soil</span>
+      <span class="tag" onclick="setQ('pesticide spray timing')">🧪 Pesticides</span>
+    </div>
+  </div>
+
+  <!-- Loader -->
+  <div class="spinner" id="spinner">
+    <span class="spin-icon">🌾</span>
+    <p style="color:var(--muted);margin-top:14px;font-size:14px">Searching YouTube for farming wisdom…</p>
+  </div>
+
+  <!-- ── RESULTS ── -->
+  {% if query and results %}
+    {% if smart_query %}
+    <div style="text-align:center;margin-bottom:20px">
+      <div class="smart-chip">🧠 Optimised query: {{ smart_query }}</div>
+    </div>
+    {% endif %}
+
+    <div class="results-header">
+      <div class="results-title">Results for "{{ query }}"</div>
+      <div class="results-count">{{ results|length }} video{% if results|length != 1 %}s{% endif %} found</div>
+    </div>
+
+    <div class="grid">
+      {% for v in results %}
+      <div class="vcard" style="animation-delay:{{ loop.index0 * 0.07 }}s">
+        <div class="thumb-wrap" onclick="window.open('{{ v.url }}','_blank')">
+          <img src="{{ v.thumb }}" alt="{{ v.title | e }}" loading="lazy"/>
+          <div class="thumb-overlay"></div>
+          <div class="play-btn">▶️</div>
+          <div class="duration-badge">{{ v.duration_label }}</div>
+        </div>
+        <div class="vcard-body">
+          <div class="vcard-title" title="{{ v.title | e }}">{{ v.title }}</div>
+          <div class="vcard-meta">
+            <div class="channel">{{ v.channel }}</div>
+            {% if v.views %}<div class="views">{{ v.views }}</div>{% endif %}
+          </div>
+        </div>
+        <a href="{{ v.url }}" target="_blank" class="watch-btn">▶ Watch on YouTube</a>
+      </div>
+      {% endfor %}
+    </div>
+
+  {% elif query and error %}
+    <div class="state-box">
+      <span class="state-icon">🔍</span>
+      <div class="state-title">No videos found</div>
+      <div class="state-sub">{{ error }}<br/>Try simpler keywords or check your connection.</div>
+    </div>
+
+  {% elif not query %}
+    <!-- Hero suggestions -->
+    <div style="text-align:center;margin-bottom:28px">
+      <div style="font-family:'Playfair Display',serif;font-size:20px;color:var(--gold2);margin-bottom:6px">Popular Topics</div>
+      <div style="font-size:13px;color:var(--muted)">Click a topic to explore farming tutorials</div>
+    </div>
+    <div class="suggestions">
+      <div class="sug-card" onclick="setQ('wheat farming complete guide India')">
+        <div class="sug-icon">🌾</div>
+        <div class="sug-title">Wheat Cultivation</div>
+        <div class="sug-hint">Sowing to harvest</div>
+      </div>
+      <div class="sug-card" onclick="setQ('tomato disease treatment spray')">
+        <div class="sug-icon">🍅</div>
+        <div class="sug-title">Tomato Disease</div>
+        <div class="sug-hint">Diagnosis & treatment</div>
+      </div>
+      <div class="sug-card" onclick="setQ('drip irrigation installation India')">
+        <div class="sug-icon">💧</div>
+        <div class="sug-title">Drip Irrigation</div>
+        <div class="sug-hint">Setup & maintenance</div>
+      </div>
+      <div class="sug-card" onclick="setQ('organic fertilizer banana peel homemade')">
+        <div class="sug-icon">🌿</div>
+        <div class="sug-title">Organic Fertilizers</div>
+        <div class="sug-hint">DIY & natural solutions</div>
+      </div>
+      <div class="sug-card" onclick="setQ('mitti pareekshan soil testing kaise kare')">
+        <div class="sug-icon">🌍</div>
+        <div class="sug-title">Soil Testing</div>
+        <div class="sug-hint">Improve soil health</div>
+      </div>
+      <div class="sug-card" onclick="setQ('paddy rice pest control India')">
+        <div class="sug-icon">🌾</div>
+        <div class="sug-title">Paddy / Rice</div>
+        <div class="sug-hint">Pest & yield tips</div>
+      </div>
+      <div class="sug-card" onclick="setQ('PM KISAN scheme registration eligibility')">
+        <div class="sug-icon">🏛️</div>
+        <div class="sug-title">Govt Schemes</div>
+        <div class="sug-hint">PM-KISAN & subsidies</div>
+      </div>
+      <div class="sug-card" onclick="setQ('modern farming technology drone spraying')">
+        <div class="sug-icon">🤖</div>
+        <div class="sug-title">Modern Farming</div>
+        <div class="sug-hint">Drones & tech</div>
+      </div>
+    </div>
+  {% endif %}
+</div>
+
+<script>
+/* BG particles */
+(function(){
+  const c=document.getElementById('bg'),ctx=c.getContext('2d');
+  let W,H,pts=[];
+  function resize(){W=c.width=innerWidth;H=c.height=innerHeight}
+  resize();addEventListener('resize',resize);
+  for(let i=0;i<40;i++)pts.push({x:Math.random()*1920,y:Math.random()*1080,r:Math.random()*1.2+.3,
+    vx:(Math.random()-.5)*.12,vy:-Math.random()*.25-.08,op:Math.random()*.4+.1,
+    col:Math.random()>.5?'#c8951a':'#3d8f52'});
+  function draw(){
+    ctx.clearRect(0,0,W,H);
+    pts.forEach(p=>{
+      ctx.beginPath();ctx.arc(p.x%W,p.y,p.r,0,Math.PI*2);
+      ctx.fillStyle=p.col;ctx.globalAlpha=p.op;ctx.fill();
+      p.x+=p.vx;p.y+=p.vy;
+      if(p.y<0)p.y=H;
+    });
+    ctx.globalAlpha=1;requestAnimationFrame(draw);
+  }
+  draw();
+})();
+
+function setQ(q){
+  document.getElementById('q-input').value=q;
+  document.querySelector('form').submit();
+  showLoader();
+}
+function showLoader(){
+  document.getElementById('spinner').classList.add('show');
+}
+</script>
+</body>
+</html>

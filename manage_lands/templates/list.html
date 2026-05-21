@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Mere Khet – Kisan AI</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;700&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="/manage-lands/static/css/lands.css"/>
+</head>
+<body>
+
+<nav class="topnav">
+  <a href="/" class="nav-brand">🌾 Kisan AI</a>
+  <div class="nav-links">
+    <a href="/assistant">AI Sahayak</a>
+    <a href="/manage-lands" class="active">Mere Khet</a>
+  </div>
+</nav>
+
+<div class="page">
+
+  <div class="page-header">
+    <div>
+      <div class="page-eyebrow">Farm Management</div>
+      <h1>Mere <em>Khet</em></h1>
+      <p class="page-sub">Apni fasal ki jaankari rakhen aur AI se sahi salah payen.</p>
+    </div>
+    <button class="btn-primary" onclick="openAddModal()">+ Naya Khet Joḍen</button>
+  </div>
+
+  {% if weather and not weather.error %}
+  <div class="weather-strip">
+    <div class="weather-city">
+      <span>📍</span>
+      <div>
+        <strong>{{ weather.city }}</strong>
+        <span class="w-label">Aaj ka mausam</span>
+      </div>
+    </div>
+    <div class="weather-days">
+      {% for day in weather.forecast %}
+      <div class="wday">
+        <div class="wday-date">{{ 'Aaj' if loop.first else day.date[5:] }}</div>
+        <img class="wday-icon" src="https://openweathermap.org/img/wn/{{ day.icon }}.png" alt="{{ day.desc }}"/>
+        <div class="wday-temp">{{ day.temp }}°C</div>
+        <div class="wday-desc">{{ day.desc }}</div>
+        <div class="wday-hum">💧 {{ day.humidity }}%</div>
+        {% if day.rain > 0 %}<div class="wday-rain">🌧️ Baarish</div>{% endif %}
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+  {% if lands %}
+  <div class="lands-grid" id="lands-grid">
+    {% for land in lands %}
+    <div class="land-card" id="card-{{ land.id }}">
+      <div class="lc-top">
+        <div class="lc-crop-badge">🌱 {{ land.crop_name }}</div>
+        <div class="lc-actions">
+          <button class="icon-btn" onclick="openEditModal('{{ land.id }}')" title="Edit">✏️</button>
+          <button class="icon-btn danger" onclick="deleteLand('{{ land.id }}')" title="Delete">🗑️</button>
+        </div>
+      </div>
+      <h3 class="lc-name">{{ land.name }}</h3>
+      <div class="lc-stats">
+        {% if land.sowing_date %}
+        <div class="lc-stat">
+          <div class="lc-stat-label">🗓️ Beej Boya</div>
+          <div class="lc-stat-val">{{ land.sowing_date }}</div>
+        </div>
+        {% endif %}
+        {% if land.last_watered %}
+        <div class="lc-stat">
+          <div class="lc-stat-label">💧 Aakhri Paani</div>
+          <div class="lc-stat-val">{{ land.last_watered }}</div>
+        </div>
+        {% endif %}
+        {% if land.watering_freq %}
+        <div class="lc-stat">
+          <div class="lc-stat-label">⏱️ Paani Kitne Din</div>
+          <div class="lc-stat-val">{{ land.watering_freq }}</div>
+        </div>
+        {% endif %}
+      </div>
+      {% if land.notes %}
+      <div class="lc-notes">📝 {{ land.notes }}</div>
+      {% endif %}
+      <a href="/manage-lands/land/{{ land.id }}" class="lc-detail-btn">
+        AI Salah Dekhen →
+      </a>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="empty-state">
+    <div class="empty-icon">🌾</div>
+    <h2>Abhi koi khet nahi hai</h2>
+    <p>Apna pehla khet joḍen aur AI se salah payen.</p>
+    <button class="btn-primary" onclick="openAddModal()">+ Pehla Khet Joḍen</button>
+  </div>
+  {% endif %}
+
+</div>
+
+<!-- MODAL -->
+<div class="modal-overlay" id="modal-overlay" onclick="closeModal()"></div>
+<div class="modal" id="land-modal">
+  <div class="modal-header">
+    <h2 id="modal-title">Naya Khet Joḍen</h2>
+    <button class="modal-close" onclick="closeModal()">✕</button>
+  </div>
+  <div class="modal-body">
+    <input type="hidden" id="edit-land-id"/>
+
+    <!-- Language choice first -->
+    <div class="lang-first">
+      <div class="lang-first-label">Aap kaunsi bhasha mein salah chahte hain?<br><small>Which language for AI advice?</small></div>
+      <div class="lang-choice-group">
+        <label class="lang-choice">
+          <input type="radio" name="f-lang" value="hi" checked/>
+          <span>🇮🇳 हिंदी</span>
+        </label>
+        <label class="lang-choice">
+          <input type="radio" name="f-lang" value="en"/>
+          <span>🇬🇧 English</span>
+        </label>
+      </div>
+    </div>
+
+    <div class="form-field">
+      <label>🏡 Khet ka naam <span class="req">*</span></label>
+      <div class="field-hint">Koi bhi naam — jaise "Ghar ke paas wala" ya "Nadi ke paas"</div>
+      <input type="text" id="f-name" placeholder="Jaise: Ghar ke paas wala khet"/>
+    </div>
+
+    <div class="form-field">
+      <label>🌾 Kaun si fasal lagai hai? <span class="req">*</span></label>
+      <div class="field-hint">Apni fasal ka naam likhein</div>
+      <input type="text" id="f-crop-name" placeholder="Jaise: Gehun, Chawal, Ganna, Tomato"/>
+    </div>
+
+    <div class="form-field">
+      <label>🗓️ Fasal kab boi? </label>
+      <div class="field-hint">Agar yaad ho to tarikh chunen</div>
+      <input type="date" id="f-sowing-date"/>
+    </div>
+
+    <div class="form-field">
+      <label>💧 Aakhri baar paani kab diya?</label>
+      <div class="field-hint">Agar yaad ho to tarikh chunen</div>
+      <input type="date" id="f-last-watered"/>
+    </div>
+
+    <div class="form-field">
+      <label>⏱️ Kitne din mein ek baar paani dete hain?</label>
+      <div class="field-hint">Paani dene ki aadat chunen</div>
+      <div class="freq-options" id="freq-options">
+        <button type="button" class="freq-btn" onclick="selectFreq(this,'Roz')">Roz</button>
+        <button type="button" class="freq-btn" onclick="selectFreq(this,'2 din mein')">2 din mein</button>
+        <button type="button" class="freq-btn" onclick="selectFreq(this,'3 din mein')">3 din mein</button>
+        <button type="button" class="freq-btn" onclick="selectFreq(this,'Hafte mein')">Hafte mein</button>
+        <button type="button" class="freq-btn" onclick="selectFreq(this,'Baarish par nirbhar')">Baarish par</button>
+      </div>
+      <input type="hidden" id="f-watering-freq"/>
+    </div>
+
+    <div class="form-field">
+      <label>📝 Kuch aur batana chahte hain? <span class="optional">(Optional)</span></label>
+      <div class="field-hint">Koi bhi cheez jo AI ko pata honi chahiye — jaise koi bimari, pareshani, ya khaas baat</div>
+      <textarea id="f-notes" rows="3" placeholder="Jaise: Patte peele pad rahe hain, ya kide lag rahe hain..."></textarea>
+    </div>
+  </div>
+
+  <div class="modal-footer">
+    <button class="btn-ghost" onclick="closeModal()">Wapas Jao</button>
+    <button class="btn-primary" id="modal-save-btn" onclick="saveLand()">Khet Bachao</button>
+  </div>
+</div>
+
+<script src="/manage-lands/static/js/lands.js"></script>
+</body>
+</html>

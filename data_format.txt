@@ -1,0 +1,13 @@
+root/
+├── main.py
+├── assistant/ ... (your existing folder)
+└── manage_lands/
+    ├── __init__.py    <-- (Empty file, but required for Python imports)
+    ├── router.py      <-- (The code I gave you in the previous turn)
+    ├── utils.py       <-- (The weather/ollama functions)
+    ├── data/
+    │   └── lands.json
+    └── templates/
+        ├── list.html
+        └── detail.html
+

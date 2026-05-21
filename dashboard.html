@@ -1,0 +1,878 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Kisan AI — किसान सहायक</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,600;0,700;1,600&family=Outfit:wght@300;400;500;600;700;800&family=Noto+Sans+Devanagari:wght@400;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<style>
+:root{
+  --bg:#060d07;--bg2:#0b1a0d;--surface:#0f2211;--surface2:#152a17;
+  --green:#1db954;--green2:#16a34a;--emerald:#34d399;--lime:#a3e635;
+  --gold:#f59e0b;--gold2:#fbbf24;--amber:#f97316;
+  --red:#ef4444;--blue:#60a5fa;--purple:#c084fc;
+  --white:#ffffff;--text:#e8f5e9;--text-mid:#a7c4aa;--text-muted:#5a7a5d;
+  --border:rgba(52,211,153,0.12);--border-gold:rgba(245,158,11,0.18);
+  --r:18px;--r2:14px;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html{scroll-behavior:smooth;}
+body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden;cursor:none;}
+#cursor{position:fixed;width:10px;height:10px;border-radius:50%;background:var(--gold);pointer-events:none;z-index:9999;transform:translate(-50%,-50%);mix-blend-mode:screen;}
+#cursor-ring{position:fixed;width:38px;height:38px;border-radius:50%;border:1.5px solid rgba(245,158,11,.45);pointer-events:none;z-index:9998;transform:translate(-50%,-50%);transition:width .3s,height .3s,border-color .3s;}
+body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='4'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");opacity:.025;}
+#three-canvas{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;pointer-events:none;}
+
+/* ══ TOPBAR ══ */
+.topbar{position:sticky;top:0;z-index:300;background:rgba(6,13,7,.88);backdrop-filter:blur(28px);border-bottom:1px solid var(--border);height:68px;padding:0 2.5rem;display:flex;align-items:center;justify-content:space-between;}
+.brand{display:flex;align-items:center;gap:13px;text-decoration:none;}
+.brand-mark{width:44px;height:44px;border-radius:14px;background:linear-gradient(145deg,var(--green2),var(--emerald));display:flex;align-items:center;justify-content:center;font-size:22px;box-shadow:0 0 24px rgba(29,185,84,.45);animation:logoGlow 3s ease-in-out infinite;flex-shrink:0;}
+@keyframes logoGlow{0%,100%{box-shadow:0 0 18px rgba(29,185,84,.4),0 0 0 0 rgba(29,185,84,.2);}50%{box-shadow:0 0 38px rgba(29,185,84,.7),0 0 0 12px rgba(29,185,84,0);}}
+.brand-name{font-family:'Cormorant Garamond',serif;font-size:1.5rem;font-weight:700;background:linear-gradient(135deg,var(--emerald),var(--gold2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;line-height:1;}
+.brand-tagline{font-size:.62rem;color:var(--text-muted);letter-spacing:.14em;text-transform:uppercase;margin-top:3px;}
+.topnav{display:flex;align-items:center;gap:2px;}
+.topnav a{padding:7px 15px;border-radius:8px;font-size:.81rem;font-weight:500;color:var(--text-mid);text-decoration:none;transition:all .2s;}
+.topnav a:hover{color:var(--emerald);background:rgba(52,211,153,.07);}
+.topnav .btn-cta{background:linear-gradient(135deg,var(--gold),var(--amber));color:#0a0a00!important;font-weight:700;padding:9px 22px;margin-left:8px;border-radius:50px;box-shadow:0 4px 18px rgba(245,158,11,.4);transition:all .3s cubic-bezier(.34,1.56,.64,1);}
+.topnav .btn-cta:hover{transform:translateY(-2px) scale(1.04);box-shadow:0 8px 30px rgba(245,158,11,.55);}
+.lang-toggle{display:flex;align-items:center;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:50px;padding:3px;gap:2px;margin-left:12px;}
+.lang-btn{padding:5px 13px;border-radius:50px;font-size:.74rem;font-weight:700;border:none;cursor:none;background:transparent;color:var(--text-muted);transition:all .22s;}
+.lang-btn.active{background:linear-gradient(135deg,var(--green2),var(--emerald));color:white;box-shadow:0 2px 10px rgba(29,185,84,.4);}
+
+/* ══ LIVE TICKER ══ */
+.ticker-wrap{background:var(--surface);border-bottom:1px solid var(--border);padding:0;overflow:hidden;position:relative;z-index:2;height:38px;display:flex;align-items:center;}
+.ticker-wrap::before,.ticker-wrap::after{content:'';position:absolute;top:0;width:100px;height:100%;z-index:2;}
+.ticker-wrap::before{left:0;background:linear-gradient(90deg,var(--surface),transparent);}
+.ticker-wrap::after{right:0;background:linear-gradient(-90deg,var(--surface),transparent);}
+.ticker-label{position:absolute;left:0;z-index:3;background:linear-gradient(135deg,var(--green2),var(--emerald));color:white;font-size:.65rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;padding:0 14px;height:100%;display:flex;align-items:center;white-space:nowrap;}
+.ticker{display:flex;animation:tick 35s linear infinite;width:max-content;padding-left:130px;}
+.ticker.paused{animation-play-state:paused;}
+.ticker-item{display:inline-flex;align-items:center;gap:8px;padding:0 22px;color:var(--text-mid);font-size:.79rem;font-weight:500;border-right:1px solid rgba(52,211,153,.08);white-space:nowrap;font-family:'Space Mono',monospace;}
+.ticker-item .crop-icon{font-size:1rem;}
+.up{color:var(--emerald);font-weight:700;}.dn{color:#f87171;font-weight:700;}
+@keyframes tick{0%{transform:translateX(0);}100%{transform:translateX(-50%);}}
+.ticker-wrap:hover .ticker{animation-play-state:paused;}
+
+/* ══ WEATHER BAR ══ */
+.weather-bar{background:linear-gradient(135deg,rgba(29,185,84,.06),rgba(245,158,11,.04));border-bottom:1px solid var(--border);padding:10px 2.5rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;position:relative;z-index:1;}
+.weather-left{display:flex;align-items:center;gap:20px;flex-wrap:wrap;}
+.weather-item{display:flex;align-items:center;gap:8px;font-size:.82rem;font-weight:500;color:var(--text-mid);}
+.weather-item .wi{font-size:1.25rem;}
+.weather-item strong{color:var(--text);}
+.weather-loc{display:flex;align-items:center;gap:6px;font-size:.75rem;color:var(--text-muted);font-weight:600;cursor:none;}
+.weather-loc .dot{width:6px;height:6px;border-radius:50%;background:var(--emerald);box-shadow:0 0 6px var(--emerald);animation:blink 2s infinite;}
+@keyframes blink{0%,100%{opacity:1;}50%{opacity:.3;}}
+.gps-btn-bar{display:inline-flex;align-items:center;gap:6px;background:rgba(52,211,153,.08);border:1px solid rgba(52,211,153,.2);border-radius:50px;padding:5px 14px;font-size:.74rem;font-weight:700;color:var(--emerald);cursor:none;transition:all .2s;}
+.gps-btn-bar:hover{background:rgba(52,211,153,.14);}
+
+/* ══ HERO ══ */
+.hero{position:relative;z-index:1;padding:6rem 2.5rem 4rem;text-align:center;overflow:hidden;min-height:88vh;display:flex;flex-direction:column;align-items:center;justify-content:center;}
+.eyebrow{display:inline-flex;align-items:center;gap:10px;background:rgba(29,185,84,.08);border:1px solid rgba(29,185,84,.25);border-radius:50px;padding:8px 22px;font-size:.72rem;font-weight:600;color:var(--emerald);letter-spacing:.1em;text-transform:uppercase;margin-bottom:2rem;animation:fadeUp .7s cubic-bezier(0.16,1,.3,1) both;}
+.eyebrow-dot{width:7px;height:7px;border-radius:50%;background:var(--green);animation:blink 2s infinite;box-shadow:0 0 8px var(--green);}
+.hero h1{font-family:'Cormorant Garamond',serif;font-size:clamp(2.8rem,6.5vw,5rem);font-weight:700;line-height:1.05;color:var(--white);margin-bottom:1.4rem;animation:fadeUp .8s cubic-bezier(0.16,1,.3,1) .1s both;letter-spacing:-.02em;}
+.hero h1 em{font-style:italic;background:linear-gradient(135deg,var(--gold) 0%,var(--gold2) 40%,var(--amber) 70%,var(--lime) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-size:300% auto;animation:gShift 4s ease infinite;}
+@keyframes gShift{0%{background-position:0% 50%;}50%{background-position:100% 50%;}100%{background-position:0% 50%;}}
+.hero p{font-size:1.05rem;color:var(--text-mid);line-height:1.8;max-width:560px;margin:0 auto 2.5rem;animation:fadeUp .8s cubic-bezier(0.16,1,.3,1) .2s both;}
+.cta-row{display:flex;gap:14px;justify-content:center;flex-wrap:wrap;animation:fadeUp .8s cubic-bezier(0.16,1,.3,1) .3s both;}
+.btn-p{display:inline-flex;align-items:center;gap:9px;background:linear-gradient(135deg,var(--green2),var(--emerald));color:white;font-weight:700;font-size:.92rem;padding:14px 30px;border-radius:50px;text-decoration:none;box-shadow:0 8px 28px rgba(29,185,84,.4),inset 0 1px 0 rgba(255,255,255,.15);transition:all .35s cubic-bezier(.34,1.56,.64,1);position:relative;overflow:hidden;}
+.btn-p::before{content:'';position:absolute;top:50%;left:50%;transform:translate(-50%,-50%) scale(0);width:200%;height:200%;background:radial-gradient(circle,rgba(255,255,255,.15) 0%,transparent 60%);transition:transform .5s;border-radius:50%;}
+.btn-p:hover::before{transform:translate(-50%,-50%) scale(1);}
+.btn-p:hover{transform:translateY(-4px) scale(1.03);box-shadow:0 14px 40px rgba(29,185,84,.55);}
+.btn-s{display:inline-flex;align-items:center;gap:9px;background:rgba(255,255,255,.04);color:var(--gold2);font-weight:600;font-size:.92rem;padding:14px 30px;border-radius:50px;text-decoration:none;border:1.5px solid rgba(245,158,11,.35);transition:all .3s cubic-bezier(.34,1.56,.64,1);backdrop-filter:blur(8px);}
+.btn-s:hover{border-color:var(--gold);background:rgba(245,158,11,.08);transform:translateY(-3px);}
+@keyframes fadeUp{from{opacity:0;transform:translateY(28px);}to{opacity:1;transform:translateY(0);}}
+.hero-badges{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:2.5rem;animation:fadeUp .8s cubic-bezier(0.16,1,.3,1) .4s both;}
+.badge{display:inline-flex;align-items:center;gap:7px;background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:50px;padding:7px 16px;font-size:.77rem;color:var(--text-muted);font-weight:500;backdrop-filter:blur(12px);transition:all .2s;}
+.badge:hover{border-color:rgba(52,211,153,.3);color:var(--emerald);}
+
+/* ══ LIVE MANDI SEARCH WIDGET ══ */
+.mandi-widget{max-width:900px;margin:0 auto;padding:0 2.5rem 5rem;position:relative;z-index:2;}
+.mandi-card{background:rgba(15,34,17,.85);backdrop-filter:blur(24px);border:1px solid rgba(52,211,153,.18);border-radius:24px;padding:2rem 2rem 1.8rem;box-shadow:0 24px 60px rgba(0,0,0,.5),0 0 0 1px rgba(52,211,153,.06);}
+.mandi-title{font-family:'Cormorant Garamond',serif;font-size:1.4rem;font-weight:700;color:var(--white);margin-bottom:.4rem;}
+.mandi-sub{font-size:.82rem;color:var(--text-muted);margin-bottom:1.5rem;}
+.search-row{display:flex;gap:12px;align-items:stretch;flex-wrap:wrap;}
+.search-wrap{flex:1;position:relative;min-width:200px;}
+.s-icon{position:absolute;left:14px;top:50%;transform:translateY(-50%);font-size:1.15rem;pointer-events:none;}
+#cropInput{width:100%;padding:13px 14px 13px 44px;border:1.5px solid var(--border);border-radius:14px;font-family:'Outfit',sans-serif;font-size:.95rem;font-weight:600;color:var(--text);background:var(--surface);outline:none;transition:border-color .2s,box-shadow .2s;}
+#cropInput:focus{border-color:rgba(52,211,153,.4);box-shadow:0 0 0 4px rgba(52,211,153,.06);}
+#cropInput::placeholder{color:var(--text-muted);font-weight:400;}
+.suggestions{position:absolute;top:calc(100% + 6px);left:0;right:0;background:var(--surface2);border:1px solid var(--border);border-radius:14px;box-shadow:0 12px 40px rgba(0,0,0,.5);z-index:400;max-height:240px;overflow-y:auto;display:none;}
+.suggestions.open{display:block;}
+.sugg-item{padding:10px 16px;cursor:none;font-size:.88rem;font-weight:600;color:var(--text);display:flex;align-items:center;gap:10px;transition:background .12s;}
+.sugg-item:hover{background:rgba(52,211,153,.08);color:var(--emerald);}
+.sugg-hi{font-size:.8rem;color:var(--text-muted);margin-left:auto;}
+.btn-search{padding:0 26px;background:linear-gradient(135deg,var(--green2),var(--emerald));color:white;border:none;border-radius:14px;font-family:'Outfit',sans-serif;font-size:.92rem;font-weight:700;cursor:none;transition:all .2s;box-shadow:0 4px 18px rgba(29,185,84,.35);display:flex;align-items:center;gap:8px;white-space:nowrap;min-height:50px;}
+.btn-search:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 8px 28px rgba(29,185,84,.5);}
+.btn-search:disabled{opacity:.45;cursor:not-allowed;transform:none;}
+.crop-chips{display:flex;flex-wrap:wrap;gap:7px;margin-top:14px;}
+.crop-chip{padding:5px 13px;background:rgba(52,211,153,.07);border:1px solid rgba(52,211,153,.15);border-radius:50px;font-size:.76rem;font-weight:700;color:var(--emerald);cursor:none;transition:all .18s;}
+.crop-chip:hover{background:rgba(52,211,153,.15);border-color:var(--emerald);transform:translateY(-2px);}
+
+/* LOADING */
+.loading-overlay{display:none;text-align:center;padding:3rem 0;}
+.loading-overlay.active{display:block;}
+.loader{width:64px;height:64px;border-radius:50%;border:3px solid rgba(52,211,153,.12);border-top-color:var(--emerald);animation:spin .8s linear infinite;margin:0 auto 1rem;}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-text{font-size:.82rem;color:var(--text-muted);font-weight:600;letter-spacing:.1em;text-transform:uppercase;}
+
+/* ERROR */
+.err-card{display:none;background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);border-radius:14px;padding:13px 18px;color:#fca5a5;font-weight:600;margin-top:14px;font-size:.84rem;}
+.err-card.active{display:block;}
+
+/* RESULTS */
+#results{display:none;margin-top:1.5rem;}
+#results.active{display:block;}
+
+/* DECISION HERO */
+.dec-hero{border-radius:20px;padding:22px 24px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;position:relative;overflow:hidden;animation:fadeUp .5s ease both;}
+.dec-hero::before{content:'';position:absolute;inset:0;background:repeating-linear-gradient(45deg,rgba(255,255,255,.015) 0,rgba(255,255,255,.015) 2px,transparent 2px,transparent 12px);}
+.dec-hero.wait{background:linear-gradient(135deg,#0d3a1a,#145228);border:1px solid rgba(52,211,153,.25);box-shadow:0 12px 40px rgba(29,185,84,.25);}
+.dec-hero.sell{background:linear-gradient(135deg,#3a1400,#5a2200);border:1px solid rgba(245,158,11,.25);box-shadow:0 12px 40px rgba(245,158,11,.2);}
+.dec-kw{font-size:.62rem;font-weight:800;letter-spacing:.18em;text-transform:uppercase;color:rgba(255,255,255,.4);margin-bottom:5px;}
+.dec-action{font-size:clamp(1.4rem,3.5vw,2.2rem);font-weight:800;color:#fff;line-height:1;font-family:'Cormorant Garamond',serif;}
+.dec-reason{margin-top:5px;font-size:.85rem;color:rgba(255,255,255,.75);font-weight:500;}
+.dec-scope{margin-top:5px;font-size:.63rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.3);}
+.dec-icon{font-size:3rem;filter:drop-shadow(0 4px 10px rgba(0,0,0,.3));}
+
+/* PRICE STRIP */
+.price-strip{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:14px;}
+.p-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r2);padding:15px 16px;transition:all .3s;}
+.p-card:hover{border-color:rgba(52,211,153,.25);transform:translateY(-3px);}
+.p-label{font-size:.6rem;font-weight:800;letter-spacing:.18em;text-transform:uppercase;color:var(--text-muted);margin-bottom:7px;}
+.p-val{font-family:'Space Mono',monospace;font-size:1.5rem;font-weight:700;color:var(--emerald);line-height:1;}
+.p-val .rs{font-size:.85rem;color:var(--text-muted);}
+.p-card.up .p-val{color:var(--emerald);}
+.p-card.dn .p-val{color:var(--amber);}
+.p-sub{font-size:.68rem;margin-top:4px;font-weight:700;}
+.p-sub.up{color:var(--emerald);}.p-sub.dn{color:var(--amber);}
+
+/* CHART */
+.chart-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r2);padding:18px 18px 14px;margin-bottom:14px;}
+.chart-title{font-size:.62rem;font-weight:800;letter-spacing:.18em;text-transform:uppercase;color:var(--text-muted);margin-bottom:12px;display:flex;align-items:center;gap:8px;}
+.chart-title .dot-g{width:8px;height:8px;border-radius:50%;background:var(--emerald);}
+.chart-title .dot-o{width:8px;height:8px;border-radius:50%;background:var(--amber);}
+.chart-legend{margin-left:auto;display:flex;gap:12px;font-size:.65rem;color:var(--text-muted);}
+.chart-wrap{height:140px;}
+svg.trend{width:100%;height:100%;}
+
+/* BEST MARKET */
+.best-card{background:linear-gradient(135deg,rgba(29,185,84,.06),rgba(52,211,153,.04));border:1px solid rgba(52,211,153,.22);border-radius:var(--r2);padding:16px 18px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;}
+.bm-badge{display:inline-flex;align-items:center;gap:5px;background:rgba(52,211,153,.12);color:var(--emerald);font-size:.6rem;font-weight:800;letter-spacing:.12em;text-transform:uppercase;padding:3px 10px;border-radius:50px;margin-bottom:6px;border:1px solid rgba(52,211,153,.2);}
+.bm-name{font-size:1.15rem;font-weight:700;color:var(--white);font-family:'Cormorant Garamond',serif;}
+.bm-sub{font-size:.75rem;color:var(--text-muted);margin-top:3px;font-weight:500;}
+.bm-price{font-family:'Space Mono',monospace;font-size:1.8rem;font-weight:700;color:var(--emerald);line-height:1;text-align:right;}
+.bm-pred{font-size:.72rem;color:var(--text-muted);margin-top:3px;font-weight:500;}
+
+/* TABS */
+.tabs{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;}
+.tab{padding:7px 18px;border-radius:50px;border:1px solid var(--border);background:rgba(255,255,255,.03);font-size:.78rem;font-weight:700;color:var(--text-muted);cursor:none;transition:all .18s;display:flex;align-items:center;gap:7px;}
+.tab.active,.tab:hover{background:rgba(52,211,153,.1);color:var(--emerald);border-color:rgba(52,211,153,.3);}
+.tab .cnt{background:rgba(52,211,153,.15);color:var(--emerald);padding:1px 8px;border-radius:50px;font-size:.68rem;}
+.panel{display:none;}.panel.active{display:block;}
+
+/* MARKET ROWS */
+.nearby-row{display:flex;align-items:center;justify-content:space-between;padding:11px 14px;background:var(--surface);border-radius:12px;border:1px solid var(--border);transition:all .2s;margin-bottom:8px;}
+.nearby-row:hover{border-color:rgba(52,211,153,.25);background:var(--surface2);}
+.nearby-row.top-row{border-color:rgba(245,158,11,.25);background:rgba(245,158,11,.04);}
+.nr-left{display:flex;align-items:center;gap:10px;}
+.nr-rank{width:26px;height:26px;border-radius:50%;background:rgba(52,211,153,.12);color:var(--emerald);font-size:.7rem;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;border:1px solid rgba(52,211,153,.2);}
+.nr-rank.gold{background:rgba(245,158,11,.15);color:var(--gold2);border-color:rgba(245,158,11,.3);}
+.nr-name{font-size:.88rem;font-weight:700;color:var(--text);}
+.nr-type{font-size:.7rem;color:var(--text-muted);margin-top:2px;}
+.nr-dist{font-family:'Space Mono',monospace;font-size:.72rem;color:var(--text-muted);background:var(--surface2);padding:3px 10px;border-radius:50px;white-space:nowrap;}
+
+.mkt-row{display:grid;grid-template-columns:1fr auto auto;align-items:center;gap:10px;padding:11px 14px;background:var(--surface);border-radius:12px;border:1px solid var(--border);transition:all .2s;margin-bottom:8px;}
+.mkt-row:hover{background:var(--surface2);border-color:rgba(52,211,153,.2);}
+.mkt-row.best-row{background:rgba(52,211,153,.04);border-color:rgba(52,211,153,.22);}
+.mkt-row.local-row{border-color:rgba(245,158,11,.2);background:rgba(245,158,11,.03);}
+.mkt-name{font-size:.88rem;font-weight:700;color:var(--text);}
+.mkt-dist{font-size:.7rem;color:var(--text-muted);margin-top:2px;}
+.local-tag{display:inline-flex;align-items:center;gap:4px;font-size:.62rem;font-weight:700;background:rgba(245,158,11,.12);color:var(--gold2);border:1px solid rgba(245,158,11,.2);padding:2px 8px;border-radius:50px;margin-left:6px;}
+.mkt-curr{font-family:'Space Mono',monospace;font-size:.9rem;font-weight:700;color:var(--text);text-align:right;}
+.mkt-pill{font-family:'Space Mono',monospace;font-size:.72rem;font-weight:700;padding:3px 10px;border-radius:50px;text-align:center;}
+.mkt-pill.up{background:rgba(52,211,153,.1);color:var(--emerald);border:1px solid rgba(52,211,153,.2);}
+.mkt-pill.dn{background:rgba(245,158,11,.1);color:var(--gold2);border:1px solid rgba(245,158,11,.2);}
+.show-more-btn{width:100%;padding:10px;background:rgba(52,211,153,.05);border:1px dashed rgba(52,211,153,.2);border-radius:12px;color:var(--emerald);font-size:.78rem;font-weight:700;cursor:none;transition:all .2s;margin-top:4px;display:none;}
+.show-more-btn:hover{background:rgba(52,211,153,.1);}
+
+/* ══ STATS ══ */
+.stats-row{max-width:1200px;margin:0 auto;padding:0 2.5rem 4rem;display:grid;grid-template-columns:repeat(4,1fr);gap:16px;position:relative;z-index:1;}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:1.5rem 1.7rem;position:relative;overflow:hidden;transition:all .4s cubic-bezier(.34,1.56,.64,1);}
+.stat-card::before{content:'';position:absolute;top:-40px;right:-40px;width:100px;height:100px;border-radius:50%;opacity:.07;transition:transform .5s;}
+.stat-card:nth-child(1)::before{background:var(--emerald);}
+.stat-card:nth-child(2)::before{background:var(--gold);}
+.stat-card:nth-child(3)::before{background:var(--blue);}
+.stat-card:nth-child(4)::before{background:var(--purple);}
+.stat-card:hover{transform:translateY(-6px);border-color:rgba(52,211,153,.22);box-shadow:0 20px 40px rgba(0,0,0,.4),0 0 30px rgba(29,185,84,.1);}
+.stat-card:hover::before{transform:scale(2.5);}
+.stat-icon{font-size:1.7rem;margin-bottom:12px;}
+.stat-val{font-family:'Space Mono',monospace;font-size:1.8rem;font-weight:700;color:var(--white);line-height:1;}
+.stat-label{font-size:.74rem;color:var(--text-muted);margin-top:6px;font-weight:500;}
+.stat-change{font-size:.68rem;color:var(--emerald);font-weight:700;margin-top:6px;}
+
+/* ══ SERVICES ══ */
+.sec-wrap{max-width:1200px;margin:0 auto;padding:4rem 2.5rem 1.5rem;position:relative;z-index:1;}
+.sec-label{display:inline-flex;align-items:center;gap:10px;font-size:.68rem;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--gold);margin-bottom:.7rem;}
+.sec-label::before,.sec-label::after{content:'';width:24px;height:1px;background:var(--gold);opacity:.55;}
+.sec-title{font-family:'Cormorant Garamond',serif;font-size:clamp(1.8rem,3.5vw,2.7rem);font-weight:700;color:var(--white);line-height:1.15;letter-spacing:-.02em;margin-bottom:.7rem;}
+.sec-sub{color:var(--text-muted);font-size:.88rem;max-width:500px;line-height:1.75;}
+.services{max-width:1200px;margin:0 auto;padding:2rem 2.5rem 5rem;position:relative;z-index:1;}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;}
+.card{background:var(--surface);border-radius:20px;border:1px solid var(--border);text-decoration:none;color:inherit;display:flex;flex-direction:column;overflow:hidden;transition:all .45s cubic-bezier(.34,1.56,.64,1);position:relative;}
+.card:hover{transform:translateY(-10px) scale(1.02);}
+.c1:hover{border-color:rgba(52,211,153,.35);box-shadow:0 28px 60px rgba(29,185,84,.2);}
+.c2:hover{border-color:rgba(245,158,11,.35);box-shadow:0 28px 60px rgba(245,158,11,.18);}
+.c3:hover{border-color:rgba(96,165,250,.35);box-shadow:0 28px 60px rgba(96,165,250,.18);}
+.c4:hover{border-color:rgba(192,132,252,.35);box-shadow:0 28px 60px rgba(192,132,252,.18);}
+.c5:hover{border-color:rgba(52,211,153,.35);box-shadow:0 28px 60px rgba(52,211,153,.15);}
+.c6:hover{border-color:rgba(249,115,22,.35);box-shadow:0 28px 60px rgba(249,115,22,.18);}
+.card-img-wrap{overflow:hidden;height:170px;position:relative;}
+.card-img-wrap::after{content:'';position:absolute;bottom:0;left:0;right:0;height:65px;background:linear-gradient(transparent,var(--surface));}
+.card-img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .6s ease,filter .4s;}
+.card:hover .card-img{transform:scale(1.1);filter:saturate(1.3) brightness(1.05);}
+.card-body{padding:1.4rem 1.6rem 1.7rem;display:flex;flex-direction:column;gap:10px;flex:1;}
+.card-top{display:flex;align-items:center;gap:11px;}
+.icon-box{width:44px;height:44px;border-radius:13px;display:flex;align-items:center;justify-content:center;font-size:1.35rem;flex-shrink:0;transition:transform .35s cubic-bezier(.34,1.56,.64,1);}
+.card:hover .icon-box{transform:scale(1.18) rotate(-8deg);}
+.c1 .icon-box{background:rgba(52,211,153,.1);border:1px solid rgba(52,211,153,.18);}
+.c2 .icon-box{background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.18);}
+.c3 .icon-box{background:rgba(96,165,250,.1);border:1px solid rgba(96,165,250,.18);}
+.c4 .icon-box{background:rgba(192,132,252,.1);border:1px solid rgba(192,132,252,.18);}
+.c5 .icon-box{background:rgba(52,211,153,.1);border:1px solid rgba(52,211,153,.18);}
+.c6 .icon-box{background:rgba(249,115,22,.1);border:1px solid rgba(249,115,22,.18);}
+.card-name{font-family:'Cormorant Garamond',serif;font-size:1.1rem;font-weight:700;color:var(--white);line-height:1.2;}
+.card-desc{font-size:.82rem;color:var(--text-muted);line-height:1.7;flex:1;}
+.card-link{font-size:.76rem;font-weight:700;display:inline-flex;align-items:center;gap:6px;padding:7px 15px;border-radius:50px;transition:all .22s;width:fit-content;margin-top:3px;}
+.c1 .card-link{color:var(--emerald);background:rgba(52,211,153,.07);border:1px solid rgba(52,211,153,.14);}
+.c2 .card-link{color:var(--gold2);background:rgba(245,158,11,.07);border:1px solid rgba(245,158,11,.14);}
+.c3 .card-link{color:#93c5fd;background:rgba(96,165,250,.07);border:1px solid rgba(96,165,250,.14);}
+.c4 .card-link{color:#d8b4fe;background:rgba(192,132,252,.07);border:1px solid rgba(192,132,252,.14);}
+.c5 .card-link{color:#6ee7b7;background:rgba(52,211,153,.07);border:1px solid rgba(52,211,153,.14);}
+.c6 .card-link{color:#fdba74;background:rgba(249,115,22,.07);border:1px solid rgba(249,115,22,.14);}
+.card:hover .card-link{gap:10px;padding-right:18px;}
+
+/* FEATURE BANNER */
+.feature-banner{max-width:1200px;margin:0 auto;padding:0 2.5rem 4rem;display:grid;grid-template-columns:1fr 1fr;gap:18px;position:relative;z-index:1;}
+.feat-card{border-radius:20px;overflow:hidden;position:relative;min-height:230px;display:flex;align-items:flex-end;text-decoration:none;border:1px solid var(--border);transition:border-color .3s;}
+.feat-card:hover{border-color:rgba(245,158,11,.35);}
+.feat-card img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transition:transform .6s ease,filter .4s;}
+.feat-card:hover img{transform:scale(1.08);}
+.feat-card-overlay{position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,.92) 0%,rgba(0,0,0,.35) 55%,transparent 100%);}
+.feat-card-content{position:relative;z-index:1;padding:1.8rem 2rem;}
+.feat-tag{font-size:.62rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--emerald);margin-bottom:9px;display:flex;align-items:center;gap:6px;}
+.feat-tag::before{content:'';width:14px;height:1px;background:var(--emerald);}
+.feat-title{font-family:'Cormorant Garamond',serif;font-size:1.5rem;font-weight:700;color:var(--white);line-height:1.2;margin-bottom:7px;}
+.feat-sub{font-size:.81rem;color:rgba(255,255,255,.58);line-height:1.6;}
+.feat-link{display:inline-flex;align-items:center;gap:6px;margin-top:12px;font-size:.75rem;font-weight:700;color:var(--gold2);border:1px solid rgba(245,158,11,.32);padding:7px 15px;border-radius:50px;transition:all .22s;}
+.feat-card:hover .feat-link{background:var(--gold);color:#0a0500;border-color:var(--gold);gap:10px;}
+
+/* TRUST */
+.trust{background:var(--surface);border-top:1px solid var(--border);border-bottom:1px solid var(--border);padding:3.5rem 2.5rem;display:flex;align-items:center;justify-content:center;gap:5rem;flex-wrap:wrap;position:relative;overflow:hidden;}
+.trust::before{content:'';position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:500px;height:180px;border-radius:50%;background:radial-gradient(ellipse,rgba(29,185,84,.05) 0%,transparent 70%);pointer-events:none;}
+.trust-item{text-align:center;position:relative;z-index:1;}
+.trust-val{font-family:'Cormorant Garamond',serif;font-size:2.8rem;font-weight:700;background:linear-gradient(135deg,var(--emerald),var(--gold2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;line-height:1;}
+.trust-lbl{font-size:.72rem;color:var(--text-muted);margin-top:7px;letter-spacing:.06em;}
+
+/* FOOTER */
+footer{background:var(--bg);border-top:1px solid var(--border);color:var(--text-muted);padding:1.8rem 2.5rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1rem;font-size:.76rem;position:relative;z-index:1;}
+footer strong{color:var(--emerald);}
+footer a{color:var(--text-muted);text-decoration:none;transition:color .2s;}
+footer a:hover{color:var(--gold2);}
+
+/* CHATBOT */
+#fab{position:fixed;bottom:28px;right:28px;z-index:1000;width:62px;height:62px;border-radius:50%;border:none;cursor:none;background:linear-gradient(145deg,var(--gold),var(--amber));display:flex;align-items:center;justify-content:center;font-size:1.7rem;box-shadow:0 8px 28px rgba(245,158,11,.5);transition:all .35s cubic-bezier(.34,1.56,.64,1);animation:fabGlow 3s infinite;}
+@keyframes fabGlow{0%,100%{box-shadow:0 8px 28px rgba(245,158,11,.5),0 0 0 0 rgba(245,158,11,.3);}50%{box-shadow:0 8px 28px rgba(245,158,11,.6),0 0 0 16px rgba(245,158,11,0);}}
+#fab:hover{transform:scale(1.12) rotate(5deg);}
+#fab.on{background:linear-gradient(145deg,#7f1d1d,#dc2626);animation:none;transform:rotate(45deg);}
+#fab::before{content:attr(data-tip);position:absolute;right:calc(100%+12px);top:50%;transform:translateY(-50%);background:var(--surface2);color:var(--white);border:1px solid var(--border);font-size:.71rem;font-weight:600;white-space:nowrap;padding:6px 13px;border-radius:10px;opacity:0;pointer-events:none;transition:opacity .2s;}
+#fab:hover::before{opacity:1;}
+#fab.on::before{display:none;}
+#chatbox{position:fixed;bottom:104px;right:28px;z-index:999;width:375px;background:var(--bg2);border-radius:22px;border:1px solid var(--border);box-shadow:0 24px 70px rgba(0,0,0,.6);display:flex;flex-direction:column;overflow:hidden;max-height:570px;transform:scale(.88) translateY(20px);opacity:0;pointer-events:none;transition:all .4s cubic-bezier(.34,1.56,.64,1);}
+#chatbox.on{transform:scale(1) translateY(0);opacity:1;pointer-events:all;}
+.ch-head{background:linear-gradient(135deg,var(--surface),var(--surface2));border-bottom:1px solid var(--border);padding:15px 18px;display:flex;align-items:center;gap:11px;flex-shrink:0;}
+.ch-av{width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg,var(--green2),var(--emerald));display:flex;align-items:center;justify-content:center;font-size:1.2rem;flex-shrink:0;box-shadow:0 0 14px rgba(29,185,84,.4);}
+.ch-name{font-weight:700;font-size:.9rem;color:var(--white);}
+.ch-sub{font-size:.64rem;color:var(--text-muted);display:flex;align-items:center;gap:5px;margin-top:2px;}
+.ch-dot{width:5px;height:5px;border-radius:50%;background:var(--emerald);animation:blink 2s infinite;}
+.ch-badge{margin-left:auto;font-size:.59rem;font-weight:700;padding:3px 11px;background:rgba(29,185,84,.1);color:var(--emerald);border:1px solid rgba(52,211,153,.22);border-radius:50px;flex-shrink:0;}
+.ch-msgs{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:10px;min-height:250px;max-height:350px;scroll-behavior:smooth;}
+.ch-msgs::-webkit-scrollbar{width:3px;}
+.ch-msgs::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px;}
+.m{display:flex;gap:8px;align-items:flex-end;animation:msgIn .22s ease both;}
+.m.u{flex-direction:row-reverse;}
+@keyframes msgIn{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
+.m-av{width:28px;height:28px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:.82rem;background:linear-gradient(135deg,#92400e,#f59e0b);}
+.m-av.b{background:linear-gradient(135deg,var(--green2),var(--emerald));}
+.bubble{max-width:255px;padding:9px 13px;border-radius:16px;font-size:.82rem;line-height:1.6;word-break:break-word;}
+.m.u .bubble{background:linear-gradient(135deg,var(--green2),var(--emerald));color:white;border-bottom-right-radius:4px;}
+.m.b .bubble{background:var(--surface);color:var(--text);border:1px solid var(--border);border-bottom-left-radius:4px;}
+.dots{display:flex;gap:4px;padding:3px 1px;}
+.dots span{width:6px;height:6px;border-radius:50%;background:var(--emerald);animation:dot 1.2s infinite ease-in-out;}
+.dots span:nth-child(2){animation-delay:.2s;}.dots span:nth-child(3){animation-delay:.4s;}
+@keyframes dot{0%,80%,100%{transform:scale(.55);opacity:.3;}40%{transform:scale(1);opacity:1;}}
+.ch-chips{padding:0 12px 9px;display:flex;flex-wrap:wrap;gap:5px;flex-shrink:0;}
+.chip{padding:4px 12px;border-radius:50px;font-size:.7rem;font-weight:600;background:var(--surface2);border:1px solid var(--border);color:var(--emerald);cursor:none;transition:all .18s;white-space:nowrap;}
+.chip:hover{background:rgba(52,211,153,.1);border-color:rgba(52,211,153,.3);transform:translateY(-1px);}
+.ch-err{margin:0 12px 9px;padding:9px 13px;border-radius:11px;background:rgba(239,68,68,.07);border:1px solid rgba(239,68,68,.18);font-size:.71rem;color:#fca5a5;display:none;line-height:1.55;}
+.ch-foot{padding:9px 11px 13px;border-top:1px solid var(--border);display:flex;gap:7px;align-items:flex-end;flex-shrink:0;}
+#cinput{flex:1;border:1px solid var(--border);border-radius:13px;padding:9px 13px;font-size:.82rem;font-family:'Outfit',sans-serif;resize:none;background:var(--surface);color:var(--text);outline:none;transition:border-color .2s;max-height:90px;min-height:40px;line-height:1.45;}
+#cinput:focus{border-color:rgba(52,211,153,.38);}
+#cinput::placeholder{color:var(--text-muted);}
+#csend{width:42px;height:42px;border-radius:13px;border:none;cursor:none;flex-shrink:0;background:linear-gradient(135deg,var(--gold),var(--amber));color:#0a0500;font-size:.95rem;display:flex;align-items:center;justify-content:center;transition:all .22s;font-weight:700;box-shadow:0 4px 14px rgba(245,158,11,.32);}
+#csend:hover:not(:disabled){transform:scale(1.08);}
+#csend:disabled{opacity:.4;cursor:not-allowed;}
+
+.reveal{opacity:0;transform:translateY(26px);transition:opacity .8s cubic-bezier(0.16,1,.3,1),transform .8s cubic-bezier(0.16,1,.3,1);}
+.reveal.visible{opacity:1;transform:translateY(0);}
+.d1{transition-delay:.1s;}.d2{transition-delay:.2s;}.d3{transition-delay:.3s;}
+
+@media(max-width:1024px){.grid{grid-template-columns:repeat(2,1fr);}.stats-row{grid-template-columns:repeat(2,1fr);}.feature-banner{grid-template-columns:1fr;}.price-strip{grid-template-columns:1fr 1fr;}}
+@media(max-width:768px){.topnav a:not(.btn-cta){display:none;}.trust{gap:3rem;}.hero{min-height:auto;}.weather-bar{padding:10px 1.5rem;}}
+@media(max-width:560px){.grid{grid-template-columns:1fr;}.hero{padding:4.5rem 1.5rem 3rem;}.services,.stats-row,.sec-wrap,.feature-banner,.mandi-widget{padding-left:1.2rem;padding-right:1.2rem;}.topbar{padding:0 1.2rem;}#chatbox{width:calc(100vw - 28px);right:14px;}footer{flex-direction:column;text-align:center;}.lang-toggle{margin-left:6px;}.price-strip{grid-template-columns:1fr;}}
+</style>
+</head>
+<body>
+
+<div id="cursor"></div>
+<div id="cursor-ring"></div>
+<canvas id="three-canvas"></canvas>
+
+<!-- TOPBAR -->
+<nav class="topbar">
+  <a href="/" class="brand">
+    <div class="brand-mark">🌾</div>
+    <div>
+      <div class="brand-name">Kisan AI</div>
+      <div class="brand-tagline" data-en="Farmer's Companion" data-hi="किसान सहायक">Farmer's Companion</div>
+    </div>
+  </a>
+  <div style="display:flex;align-items:center;gap:4px;">
+    <div class="topnav">
+      <a href="/assistant" data-en="AI Assistant" data-hi="AI सहायक">AI Assistant</a>
+      <a href="/mandi" data-en="Mandi" data-hi="मंडी">Mandi</a>
+      <a href="/schemes" data-en="Schemes" data-hi="योजनाएं">Schemes</a>
+      <a href="/crop-doctor" data-en="Crop Doctor" data-hi="फसल डॉक्टर">Crop Doctor</a>
+      <a href="/assistant" class="btn-cta" data-en="💬 Chat Now" data-hi="💬 बात करें">💬 Chat Now</a>
+    </div>
+    <div class="lang-toggle">
+      <button class="lang-btn active" id="btn-en" onclick="setLang('en')">EN</button>
+      <button class="lang-btn" id="btn-hi" onclick="setLang('hi')">हिं</button>
+    </div>
+  </div>
+</nav>
+
+<!-- LIVE TICKER -->
+<div class="ticker-wrap">
+  <div class="ticker-label">📊 LIVE</div>
+  <div class="ticker" id="liveTickerEl">
+    <span class="ticker-item"><span class="crop-icon">🌾</span>Wheat · Azadpur · ₹2,240/q <span class="up">▲2.1%</span></span>
+    <span class="ticker-item"><span class="crop-icon">🌾</span>Rice · Ghaziabad · ₹1,890/q <span class="up">▲0.8%</span></span>
+    <span class="ticker-item"><span class="crop-icon">🥦</span>Tomato · Okhla · ₹1,240/q <span class="dn">▼1.4%</span></span>
+    <span class="ticker-item"><span class="crop-icon">🌽</span>Maize · Hapur · ₹1,560/q <span class="up">▲3.2%</span></span>
+    <span class="ticker-item"><span class="crop-icon">🧅</span>Onion · Nasik · ₹980/q <span class="dn">▼0.5%</span></span>
+    <span class="ticker-item"><span class="crop-icon">🥔</span>Potato · Agra · ₹820/q <span class="up">▲1.1%</span></span>
+    <span class="ticker-item"><span class="crop-icon">🌱</span>Soybean · Indore · ₹4,320/q <span class="up">▲1.8%</span></span>
+    <span class="ticker-item"><span class="crop-icon">🌿</span>Mustard · Jaipur · ₹5,180/q <span class="up">▲0.6%</span></span>
+    <span class="ticker-item"><span class="crop-icon">🌾</span>Wheat · Azadpur · ₹2,240/q <span class="up">▲2.1%</span></span>
+    <span class="ticker-item"><span class="crop-icon">🌾</span>Rice · Ghaziabad · ₹1,890/q <span class="up">▲0.8%</span></span>
+    <span class="ticker-item"><span class="crop-icon">🥦</span>Tomato · Okhla · ₹1,240/q <span class="dn">▼1.4%</span></span>
+    <span class="ticker-item"><span class="crop-icon">🌽</span>Maize · Hapur · ₹1,560/q <span class="up">▲3.2%</span></span>
+    <span class="ticker-item"><span class="crop-icon">🧅</span>Onion · Nasik · ₹980/q <span class="dn">▼0.5%</span></span>
+    <span class="ticker-item"><span class="crop-icon">🥔</span>Potato · Agra · ₹820/q <span class="up">▲1.1%</span></span>
+    <span class="ticker-item"><span class="crop-icon">🌱</span>Soybean · Indore · ₹4,320/q <span class="up">▲1.8%</span></span>
+    <span class="ticker-item"><span class="crop-icon">🌿</span>Mustard · Jaipur · ₹5,180/q <span class="up">▲0.6%</span></span>
+  </div>
+</div>
+
+<!-- WEATHER BAR -->
+<div class="weather-bar">
+  <div class="weather-left">
+    <div class="weather-item">
+      <span class="wi" id="wx-icon">⏳</span>
+      <span><strong id="wx-temp">--°C</strong></span>
+    </div>
+    <div class="weather-item">💧 <span><strong id="wx-hum">--%</strong></span> humidity</div>
+    <div class="weather-item">💨 <span><strong id="wx-wind">-- km/h</strong></span> wind</div>
+    <div class="weather-item">🌡️ Feels <strong id="wx-feels">--°C</strong></div>
+    <div class="weather-item" id="wx-advice" style="color:var(--gold2);font-weight:600;display:none;">⚠️ <span id="wx-advice-text"></span></div>
+  </div>
+  <div style="display:flex;align-items:center;gap:12px;">
+    <div class="weather-loc"><span class="dot"></span><span id="wx-loc">Fetching location…</span></div>
+    <button class="gps-btn-bar" onclick="getLocation()">📍 <span data-en="Use GPS" data-hi="GPS उपयोग करें">Use GPS</span></button>
+  </div>
+</div>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="eyebrow"><span class="eyebrow-dot"></div>
+  <h1><span data-en="Your Smart Farming" data-hi="आपका स्मार्ट खेती">Your Smart Farming</span><br><em data-en="Companion" data-hi="सहायक">Companion</em></h1>
+  <p data-en="AI-powered tools for Indian farmers — check mandi prices, manage your land, find government schemes, and get expert crop advice. All in your language." data-hi="भारतीय किसानों के लिए AI टूल्स — मंडी भाव देखें, ज़मीन संभालें, सरकारी योजनाएं खोजें और फसल की जानकारी पाएं। सब आपकी भाषा में।">AI-powered tools for Indian farmers — check mandi prices, manage your land, find government schemes, and get expert crop advice. All in your language.</p>
+  <div class="cta-row">
+    <a href="/assistant" class="btn-p" data-en="🤖 Talk to AI Assistant" data-hi="🤖 AI से बात करें">🤖 Talk to AI Assistant</a>
+    <a href="/mandi" class="btn-s" data-en="📊 Live Mandi Prices" data-hi="📊 लाइव मंडी भाव">📊 Live Mandi Prices</a>
+  </div>
+  <div class="hero-badges">
+    <span class="badge">🔒 <span data-en="100% Local — No Data Leaves Device" data-hi="100% लोकल — डेटा सुरक्षित">100% Local — No Data Leaves Device</span></span>
+    <span class="badge">🇮🇳 <span data-en="Built for Bharat" data-hi="भारत के लिए बनाया">Built for Bharat</span></span>
+    <span class="badge">⚡ <span data-en="Real Govt API Data" data-hi="असली सरकारी डेटा">Real Govt API Data</span></span>
+  </div>
+</section>
+
+
+
+<!-- STATS -->
+<div class="stats-row">
+  <div class="stat-card reveal"><div class="stat-icon">📈</div><div class="stat-val" id="sv1">0</div><div class="stat-label" data-en="Mandis Tracked Live" data-hi="लाइव मंडियां">Mandis Tracked Live</div><div class="stat-change">▲ Real-time</div></div>
+  <div class="stat-card reveal d1"><div class="stat-icon">🌾</div><div class="stat-val" id="sv2">0</div><div class="stat-label" data-en="Crops Monitored" data-hi="फसलें ट्रैक की जा रही हैं">Crops Monitored</div><div class="stat-change">▲ All seasons</div></div>
+  <div class="stat-card reveal d2"><div class="stat-icon">💬</div><div class="stat-val" id="sv3">0</div><div class="stat-label" data-en="AI Queries Answered" data-hi="AI जवाब">AI Queries Answered</div><div class="stat-change">▲ Today</div></div>
+  <div class="stat-card reveal d3"><div class="stat-icon">🏛️</div><div class="stat-val" id="sv4">0</div><div class="stat-label" data-en="Govt Schemes" data-hi="सरकारी योजनाएं">Govt Schemes</div><div class="stat-change">▲ Updated 2025</div></div>
+</div>
+
+<!-- SERVICES SECTION HEADER -->
+<div class="sec-wrap reveal">
+  <div class="sec-label" data-en="Our Services" data-hi="हमारी सेवाएं">Our Services</div>
+  <h2 class="sec-title" data-en="Everything a Farmer Needs" data-hi="किसान की हर ज़रूरत">Everything a Farmer Needs</h2>
+  <p class="sec-sub" data-en="Six powerful tools built for Indian farmers — simple, fast, available in Hindi and English." data-hi="छह शक्तिशाली टूल्स — सरल, तेज़ और हिंदी व English में।">Six powerful tools built for Indian farmers — simple, fast, available in Hindi and English.</p>
+</div>
+
+<!-- SERVICES -->
+<section class="services">
+  <div class="grid">
+    <a href="/assistant" class="card c1 reveal">
+      <div class="card-img-wrap"><img class="card-img" src="https://images.unsplash.com/photo-1625246333195-78d9c38ad449?w=600&q=80&auto=format&fit=crop" alt="AI"/></div>
+      <div class="card-body"><div class="card-top"><div class="icon-box">🤖</div><div class="card-name" data-en="AI Assistant" data-hi="AI सहायक">AI Assistant</div></div><div class="card-desc" data-en="Ask any question in Hindi or English. Get instant expert answers on crops, soil, pests, fertilizers and more." data-hi="हिंदी या English में सवाल पूछें। फसल, मिट्टी, कीट — तुरंत जवाब।">Ask any question in Hindi or English. Get instant expert answers on crops, soil, pests, fertilizers and more.</div><div class="card-link" data-en="Open Assistant →" data-hi="सहायक खोलें →">Open Assistant →</div></div>
+    </a>
+    <a href="/mandi" class="card c2 reveal d1">
+      <div class="card-img-wrap"><img class="card-img" src="https://images.unsplash.com/photo-1610348725531-843dff563e2c?w=600&q=80&auto=format&fit=crop" alt="Mandi"/></div>
+      <div class="card-body"><div class="card-top"><div class="icon-box">📊</div><div class="card-name" data-en="Mandi Prices" data-hi="मंडी भाव">Mandi Prices</div></div><div class="card-desc" data-en="Check live market rates from mandis near you. Wheat, rice, vegetables — all crops in one place." data-hi="नज़दीकी मंडी के ताज़ा भाव देखें।">Check live market rates from mandis near you. Wheat, rice, vegetables — all crops in one place.</div><div class="card-link" data-en="Check Prices →" data-hi="भाव देखें →">Check Prices →</div></div>
+    </a>
+    <a href="/manage-lands" class="card c3 reveal d2">
+      <div class="card-img-wrap"><img class="card-img" src="https://images.unsplash.com/photo-1500937386664-56d1dfef3854?w=600&q=80&auto=format&fit=crop" alt="Lands"/></div>
+      <div class="card-body"><div class="card-top"><div class="icon-box">🗺️</div><div class="card-name" data-en="Manage My Lands" data-hi="मेरी ज़मीन">Manage My Lands</div></div><div class="card-desc" data-en="Keep records of all your plots, crops and farming activities in one place. Track every field easily." data-hi="सभी ज़मीनें और खेती का रिकॉर्ड एक जगह।">Keep records of all your plots, crops and farming activities in one place. Track every field easily.</div><div class="card-link" data-en="My Lands →" data-hi="मेरी ज़मीन →">My Lands →</div></div>
+    </a>
+    <a href="/schemes" class="card c4 reveal">
+      <div class="card-img-wrap"><img class="card-img" src="https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?w=600&q=80&auto=format&fit=crop" alt="Schemes"/></div>
+      <div class="card-body"><div class="card-top"><div class="icon-box">🏛️</div><div class="card-name" data-en="Government Schemes" data-hi="सरकारी योजनाएं">Government Schemes</div></div><div class="card-desc" data-en="PM Kisan, PMFBY insurance, irrigation subsidy — all government schemes in one place." data-hi="PM Kisan, PMFBY बीमा — सभी योजनाएं एक जगह।">PM Kisan, PMFBY insurance, irrigation subsidy — all government schemes in one place.</div><div class="card-link" data-en="Browse Schemes →" data-hi="योजनाएं देखें →">Browse Schemes →</div></div>
+    </a>
+    <a href="/crop-doctor" class="card c5 reveal d1">
+      <div class="card-img-wrap"><img class="card-img" src="https://images.unsplash.com/photo-1416879595882-3373a0480b5b?w=600&q=80&auto=format&fit=crop" alt="Crop Doctor"/></div>
+      <div class="card-body"><div class="card-top"><div class="icon-box">🌿</div><div class="card-name" data-en="Crop Doctor" data-hi="फसल डॉक्टर">Crop Doctor</div></div><div class="card-desc" data-en="Take a photo of your crop and AI will instantly identify the disease and suggest the right treatment." data-hi="फसल की फोटो खींचें — AI रोग पहचानेगा।">Take a photo of your crop and AI will instantly identify the disease and suggest the right treatment.</div><div class="card-link" data-en="Diagnose Crop →" data-hi="फसल जांचें →">Diagnose Crop →</div></div>
+    </a>
+    <a href="/videos" class="card c6 reveal d2">
+      <div class="card-img-wrap"><img class="card-img" src="https://images.unsplash.com/photo-1574323347407-f5e1ad6d020b?w=600&q=80&auto=format&fit=crop" alt="Tutorials"/></div>
+      <div class="card-body"><div class="card-top"><div class="icon-box">🎓</div><div class="card-name" data-en="Farming Tutorials" data-hi="खेती वीडियो">Farming Tutorials</div></div><div class="card-desc" data-en="Learn the best farming techniques. Irrigation, tilling, organic farming — expert videos in Hindi and English." data-hi="खेती के बेहतरीन तरीके सीखें — हिंदी में।">Learn the best farming techniques. Irrigation, tilling, organic farming — expert videos in Hindi and English.</div><div class="card-link" data-en="Watch Videos →" data-hi="वीडियो देखें →">Watch Videos →</div></div>
+    </a>
+  </div>
+</section>
+
+<!-- FEATURE BANNER -->
+<div class="feature-banner">
+  <a href="/crop-doctor" class="feat-card reveal">
+    <img src="https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800&q=80&auto=format&fit=crop" alt="Crop Doctor"/>
+    <div class="feat-card-overlay"></div>
+    <div class="feat-card-content">
+      <div class="feat-tag" data-en="AI Powered" data-hi="AI संचालित">AI Powered</div>
+      <div class="feat-title" data-en="Detect Crop Disease Instantly" data-hi="तुरंत फसल रोग पहचानें">Detect Crop Disease Instantly</div>
+      <div class="feat-sub" data-en="Upload a photo. Get full diagnosis + treatment plan in seconds." data-hi="फोटो अपलोड करें — रोग पहचानें।">Upload a photo. Get full diagnosis + treatment plan in seconds.</div>
+      <div class="feat-link" data-en="Try Crop Doctor →" data-hi="फसल डॉक्टर खोलें →">Try Crop Doctor →</div>
+    </div>
+  </a>
+  <a href="/schemes" class="feat-card reveal d1">
+    <img src="https://images.unsplash.com/photo-1593113598332-cd288d649433?w=800&q=80&auto=format&fit=crop" alt="Schemes"/>
+    <div class="feat-card-overlay"></div>
+    <div class="feat-card-content">
+      <div class="feat-tag" data-en="Government Benefits" data-hi="सरकारी लाभ">Government Benefits</div>
+      <div class="feat-title" data-en="Claim ₹6,000 PM Kisan Now" data-hi="PM Kisan ₹6,000 अभी पाएं">Claim ₹6,000 PM Kisan Now</div>
+      <div class="feat-sub" data-en="Check eligibility, apply directly, and track your application status." data-hi="पात्रता जांचें और आवेदन करें।">Check eligibility, apply directly, and track your application status.</div>
+      <div class="feat-link" data-en="Browse Schemes →" data-hi="योजनाएं देखें →">Browse Schemes →</div>
+    </div>
+  </a>
+</div>
+
+<!-- TRUST -->
+<div class="trust">
+  <div class="trust-item reveal"><div class="trust-val">6</div><div class="trust-lbl" data-en="Farming Tools" data-hi="खेती के टूल्स">Farming Tools</div></div>
+  <div class="trust-item reveal d1"><div class="trust-val">🇮🇳</div><div class="trust-lbl" data-en="Made for India" data-hi="भारत के लिए">Made for India</div></div>
+  <div class="trust-item reveal d2"><div class="trust-val">100%</div><div class="trust-lbl" data-en="Local AI · No Cloud" data-hi="Local AI">Local AI · No Cloud</div></div>
+  <div class="trust-item reveal d3"><div class="trust-val">EN+हिं</div><div class="trust-lbl" data-en="Hindi + English" data-hi="हिंदी + English">Hindi + English</div></div>
+</div>
+
+<!-- FOOTER -->
+<footer>
+  <div>© 2025 <strong>Kisan AI</strong> · <span data-en="Built for Indian Farmers" data-hi="किसान भाइयों के लिए">Built for Indian Farmers</span></div>
+  <div style="display:flex;gap:14px;flex-wrap:wrap;">
+    <a href="/assistant">Assistant</a><a href="/mandi">Mandi</a><a href="/manage-lands">Lands</a>
+    <a href="/schemes">Schemes</a><a href="/crop-doctor">Crop Doctor</a><a href="/videos">Videos</a>
+  </div>
+</footer>
+
+<!-- CHATBOT -->
+<button id="fab" onclick="toggleChat()" data-tip="Ask Kisan AI">💬</button>
+<div id="chatbox">
+  <div class="ch-head"><div class="ch-av">🤖</div><div><div class="ch-name">Kisan AI Assistant</div><div class="ch-sub"><span class="ch-dot"></span> qwen2.5:7b · Ollama Cloud</div></div><div class="ch-badge">CLOUD AI</div></div>
+  <div class="ch-msgs" id="msgs"></div>
+  <div class="ch-chips" id="chips"></div>
+  <div class="ch-err" id="cerr"></div>
+  <div class="ch-foot"><textarea id="cinput" rows="1" onkeydown="onkey(event)" oninput="rsz(this)"></textarea><button id="csend" onclick="sendMsg()">➤</button></div>
+</div>
+
+<script>
+  
+// ══ CURSOR ══
+const cur=document.getElementById('cursor'),ring=document.getElementById('cursor-ring');
+let mx=0,my=0,rx=0,ry=0;
+document.addEventListener('mousemove',e=>{mx=e.clientX;my=e.clientY;cur.style.left=mx+'px';cur.style.top=my+'px';});
+(function animR(){rx+=(mx-rx)*.12;ry+=(my-ry)*.12;ring.style.left=rx+'px';ring.style.top=ry+'px';requestAnimationFrame(animR);})();
+document.querySelectorAll('a,button,.card,.crop-chip,.chip,.stat-card,.nearby-row,.mkt-row').forEach(el=>{
+  el.addEventListener('mouseenter',()=>{cur.style.width='18px';cur.style.height='18px';ring.style.width='56px';ring.style.height='56px';ring.style.borderColor='rgba(245,158,11,.8)';});
+  el.addEventListener('mouseleave',()=>{cur.style.width='10px';cur.style.height='10px';ring.style.width='38px';ring.style.height='38px';ring.style.borderColor='rgba(245,158,11,.45)';});
+});
+
+// ══ THREE.JS ══
+(function(){
+  const canvas=document.getElementById('three-canvas');
+  const renderer=new THREE.WebGLRenderer({canvas,alpha:true,antialias:true});
+  renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+  renderer.setSize(innerWidth,innerHeight);
+  const scene=new THREE.Scene(),camera=new THREE.PerspectiveCamera(60,innerWidth/innerHeight,.1,1000);
+  camera.position.z=5;
+  const N=2200,geo=new THREE.BufferGeometry(),pos=new Float32Array(N*3),col=new Float32Array(N*3);
+  for(let i=0;i<N;i++){
+    pos[i*3]=(Math.random()-.5)*22;pos[i*3+1]=(Math.random()-.5)*22;pos[i*3+2]=(Math.random()-.5)*12;
+    const g=Math.random();
+    if(g>.65){col[i*3]=.96;col[i*3+1]=.62;col[i*3+2]=.04;}
+    else if(g>.3){col[i*3]=.2;col[i*3+1]=.83;col[i*3+2]=.6;}
+    else{col[i*3]=.64;col[i*3+1]=.9;col[i*3+2]=.21;}
+  }
+  geo.setAttribute('position',new THREE.BufferAttribute(pos,3));
+  geo.setAttribute('color',new THREE.BufferAttribute(col,3));
+  const pts=new THREE.Points(geo,new THREE.PointsMaterial({size:.032,vertexColors:true,transparent:true,opacity:.6}));
+  scene.add(pts);
+  const sphere=new THREE.Mesh(new THREE.SphereGeometry(2.5,18,18),new THREE.MeshBasicMaterial({color:0x1db954,wireframe:true,transparent:true,opacity:.05}));
+  sphere.position.set(4.5,.5,-2);scene.add(sphere);
+  const tor=new THREE.Mesh(new THREE.TorusGeometry(1.6,.008,16,80),new THREE.MeshBasicMaterial({color:0xf59e0b,transparent:true,opacity:.28}));
+  tor.position.set(4.5,.5,-2);tor.rotation.x=Math.PI/4;scene.add(tor);
+  const tor2=new THREE.Mesh(new THREE.TorusGeometry(2.1,.005,16,80),new THREE.MeshBasicMaterial({color:0x34d399,transparent:true,opacity:.13}));
+  tor2.position.set(4.5,.5,-2);tor2.rotation.x=Math.PI/3;scene.add(tor2);
+  const sp2=new THREE.Mesh(new THREE.SphereGeometry(1.3,12,12),new THREE.MeshBasicMaterial({color:0xf59e0b,wireframe:true,transparent:true,opacity:.04}));
+  sp2.position.set(-5,-1,-3);scene.add(sp2);
+  let mx3=0,my3=0;
+  document.addEventListener('mousemove',e=>{mx3=(e.clientX/innerWidth-.5)*.5;my3=(e.clientY/innerHeight-.5)*.35;});
+  window.addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);});
+  const clock=new THREE.Clock();
+  (function loop(){
+    requestAnimationFrame(loop);const t=clock.getElapsedTime();
+    pts.rotation.y=t*.032+mx3*.4;pts.rotation.x=t*.016+my3*.25;
+    sphere.rotation.y=t*.12;sphere.rotation.x=t*.06;
+    tor.rotation.z=t*.18;tor.rotation.y=t*.06;
+    tor2.rotation.z=-t*.13;tor2.rotation.y=t*.09;
+    sp2.rotation.y=-t*.2;sp2.rotation.z=t*.1;
+    camera.position.x=mx3*.8;camera.position.y=-my3*.5;camera.lookAt(0,0,0);
+    renderer.render(scene,camera);
+  })();
+})();
+
+// ══ REVEAL ══
+const ro=new IntersectionObserver(e=>e.forEach(x=>{if(x.isIntersecting)x.target.classList.add('visible');}),{threshold:.08});
+document.querySelectorAll('.reveal').forEach(el=>ro.observe(el));
+
+// ══ COUNTERS ══
+function animCount(el,target,sfx){
+  let st=null;
+  (function step(ts){if(!st)st=ts;const p=Math.min((ts-st)/2000,1),e=1-Math.pow(1-p,3);el.textContent=Math.round(e*target).toLocaleString()+(sfx||'');if(p<1)requestAnimationFrame(step);})(performance.now());
+}
+new IntersectionObserver(e=>e.forEach(x=>{if(x.isIntersecting&&!x.target.dataset.done){x.target.dataset.done=1;animCount(document.getElementById('sv1'),2847);animCount(document.getElementById('sv2'),128,'+');animCount(document.getElementById('sv3'),14532);animCount(document.getElementById('sv4'),47);}}),{threshold:.3}).observe(document.querySelector('.stats-row'));
+
+// ══ GPS & WEATHER ══
+let userLat=28.6692,userLng=77.4538,userState='Uttar Pradesh',userDistrict='Ghaziabad';
+
+const WX_CODES={0:'☀️ Clear',1:'🌤️ Mainly Clear',2:'⛅ Partly Cloudy',3:'☁️ Overcast',45:'🌫️ Foggy',48:'🌫️ Icy Fog',51:'🌦️ Light Drizzle',61:'🌧️ Light Rain',63:'🌧️ Moderate Rain',71:'❄️ Light Snow',80:'🌦️ Rain Showers',95:'⛈️ Thunderstorm',99:'⛈️ Heavy Storm'};
+
+async function fetchWeather(lat,lng){
+  try{
+    const r=await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current=temperature_2m,relative_humidity_2m,apparent_temperature,wind_speed_10m,weather_code&timezone=auto`);
+    const d=await r.json();
+    const c=d.current;
+    const code=c.weather_code;
+    const icon=WX_CODES[code]||'🌤️';
+    document.getElementById('wx-icon').textContent=icon.split(' ')[0];
+    document.getElementById('wx-temp').textContent=c.temperature_2m+'°C';
+    document.getElementById('wx-hum').textContent=c.relative_humidity_2m+'%';
+    document.getElementById('wx-wind').textContent=c.wind_speed_10m+' km/h';
+    document.getElementById('wx-feels').textContent=c.apparent_temperature+'°C';
+    // Farming advice
+    const adv=document.getElementById('wx-advice'),advT=document.getElementById('wx-advice-text');
+    if(c.relative_humidity_2m>85){adv.style.display='flex';advT.textContent='High humidity — watch for fungal disease';}
+    else if(code>=51&&code<=99){adv.style.display='flex';advT.textContent='Rain expected — hold off on harvesting';}
+    else{adv.style.display='none';}
+  }catch(e){console.warn('Weather fetch failed');}
+}
+
+async function fetchGeocode(lat,lng){
+  try{
+    const r=await fetch(`/api/geocode?lat=${lat}&lng=${lng}`);
+    const d=await r.json();
+    userState=d.state||'Uttar Pradesh';
+    userDistrict=d.district||'Ghaziabad';
+    const loc=[d.locality,d.district,d.state].filter(Boolean).join(', ');
+    document.getElementById('wx-loc').textContent=loc||'India';
+  }catch(e){
+    // fallback to nominatim
+    try{
+      const r=await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`,{headers:{'User-Agent':'KisanAI/1.0'}});
+      const d=await r.json();
+      const a=d.address||{};
+      userState=a.state||'Uttar Pradesh';
+      userDistrict=a.state_district||a.county||a.city||'Ghaziabad';
+      document.getElementById('wx-loc').textContent=[a.suburb||a.village||a.city_district,a.state_district||a.city,a.state].filter(Boolean).join(', ')||'India';
+    }catch{}
+  }
+}
+
+function getLocation() {
+  if (!navigator.geolocation) {
+    document.getElementById('wx-loc').textContent = "Geolocation not supported";
+    return;
+  }
+
+  document.getElementById('wx-loc').textContent = "Detecting location...";
+
+  navigator.geolocation.getCurrentPosition(
+    async (pos) => {
+      try {
+        const userLat = pos.coords.latitude;
+        const userLng = pos.coords.longitude;
+
+        await Promise.all([
+          fetchWeather(userLat, userLng),
+          fetchGeocode(userLat, userLng)
+        ]);
+      } catch (err) {
+        console.error("Error fetching data:", err);
+        document.getElementById('wx-loc').textContent = "Failed to load location";
+      }
+    },
+    async () => {
+      // fallback (Ghaziabad)
+      const fallbackLat = 28.6692;
+      const fallbackLng = 77.4538;
+
+      try {
+        await fetchWeather(fallbackLat, fallbackLng);
+        document.getElementById('wx-loc').textContent = "Ghaziabad, Uttar Pradesh";
+      } catch (err) {
+        console.error("Fallback error:", err);
+        document.getElementById('wx-loc').textContent = "Unable to fetch data";
+      }
+    }
+  );
+}
+
+async function fetchGeocode(lat, lng) {
+  try {
+    const res = await fetch(`/api/geocode?lat=${lat}&lng=${lng}`);
+    const data = await res.json();
+
+    if (data.location) {
+      document.getElementById('wx-loc').textContent = data.location;
+    } else {
+      document.getElementById('wx-loc').textContent = "Location unavailable";
+    }
+  } catch (err) {
+    console.error("Geocode error:", err);
+    document.getElementById('wx-loc').textContent = "Location error";
+  }
+}
+getLocation();
+
+// ══ CROP SUGGESTIONS ══
+const CROPS=[
+  {n:'Wheat',h:'गेहूं',i:'🌾'},{n:'Rice',h:'चावल',i:'🍚'},{n:'Paddy',h:'धान',i:'🌾'},
+  {n:'Tomato',h:'टमाटर',i:'🍅'},{n:'Potato',h:'आलू',i:'🥔'},{n:'Onion',h:'प्याज',i:'🧅'},
+  {n:'Mustard',h:'सरसों',i:'🌿'},{n:'Maize',h:'मक्का',i:'🌽'},{n:'Soyabean',h:'सोयाबीन',i:'🫘'},
+  {n:'Gram',h:'चना',i:'🟤'},{n:'Garlic',h:'लहसुन',i:'🧄'},{n:'Ginger',h:'अदरक',i:'🫚'},
+  {n:'Cauliflower',h:'गोभी',i:'🥦'},{n:'Moong',h:'मूंग',i:'🫘'},{n:'Arhar (Tur)',h:'अरहर',i:'🫘'},
+  {n:'Brinjal',h:'बैंगन',i:'🍆'},{n:'Chilli',h:'मिर्च',i:'🌶️'},{n:'Turmeric',h:'हल्दी',i:'🟡'},
+];
+function showSuggestions(val){
+  const box=document.getElementById('suggestions');
+  if(!val||val.length<2){box.classList.remove('open');return;}
+  const q=val.toLowerCase();
+  const matches=CROPS.filter(c=>c.n.toLowerCase().includes(q)||c.h.includes(q));
+  if(!matches.length){box.classList.remove('open');return;}
+  box.innerHTML=matches.slice(0,6).map(c=>`<div class="sugg-item" onclick="selectCrop('${c.n}')"><span>${c.i}</span><span>${c.n}</span><span class="sugg-hi">${c.h}</span></div>`).join('');
+  box.classList.add('open');
+}
+function selectCrop(name){document.getElementById('cropInput').value=name;document.getElementById('suggestions').classList.remove('open');searchMandi();}
+function quickSearch(crop){document.getElementById('cropInput').value=crop;searchMandi();}
+document.addEventListener('click',e=>{if(!e.target.closest('.search-wrap'))document.getElementById('suggestions').classList.remove('open');});
+
+// ══ MANDI API ══
+let allMarkets=[],osmMandis=[],visAll=8,visGovt=8,activeTab='local';
+const MANDI_API='';
+const fmt=v=>Number(v).toLocaleString('en-IN');
+
+async function searchMandi(){
+  const crop=document.getElementById('cropInput').value.trim();
+  if(!crop)return;
+  document.getElementById('suggestions').classList.remove('open');
+  setLoading(true);clearErr();hideResults();
+  try{
+    const url=`${MANDI_API}/api/analyze?crop=${encodeURIComponent(crop)}&lat=${userLat}&lng=${userLng}&state=${encodeURIComponent(userState)}&district=${encodeURIComponent(userDistrict)}`;
+    const r=await fetch(url);
+    if(!r.ok){const e=await r.json();throw new Error(e.error_en||e.error_hi||'API error');}
+    renderResults(await r.json());
+    document.getElementById('mandi-section').scrollIntoView({behavior:'smooth',block:'start'});
+  }catch(e){showErr(e.message||'Could not connect to mandi backend.');}
+  finally{setLoading(false);}
+}
+
+function renderResults(d){
+  const isWait=d.decision==='WAIT';
+  const hero=document.getElementById('decHero');
+  hero.className='dec-hero '+(isWait?'wait':'sell');
+  document.getElementById('decAction').textContent=isWait?'📈 WAIT — Price Will Rise':'📉 SELL NOW — Price May Fall';
+  document.getElementById('decReason').textContent=isWait?'Price is expected to rise. Hold your crop for a better return.':'Price may drop. Selling now would give the best return.';
+  document.getElementById('decScope').textContent='Data scope: '+(d.data_scope||'National')+' · '+d.total_records+' records';
+  document.getElementById('decIcon').textContent=isWait?'🌱':'💰';
+  document.getElementById('pCurr').textContent=fmt(d.overall_current);
+  document.getElementById('pPred').textContent=fmt(d.overall_predicted);
+  const chg=d.change_pct;
+  document.getElementById('pPredCard').className='p-card '+(chg>=0?'up':'dn');
+  const sub=document.getElementById('pPredSub');
+  sub.className='p-sub '+(chg>=0?'up':'dn');
+  sub.textContent=(chg>=0?'▲ +':'▼ ')+Math.abs(chg)+'%';
+  document.getElementById('pRec').textContent=d.total_records;
+  drawTrend(d.trend,d.overall_current,d.overall_predicted);
+  if(d.best_market){
+    document.getElementById('bmName').textContent=d.best_market.market;
+    document.getElementById('bmSub').textContent=[d.best_market.district,d.best_market.state].filter(Boolean).join(' · ');
+    document.getElementById('bmPrice').textContent=fmt(d.best_market.current_price);
+    const bc=d.best_market.change_pct;
+    document.getElementById('bmPred').textContent='Predicted: ₹'+fmt(d.best_market.predicted_price)+'  ('+(bc>=0?'+':'')+bc+'%)';
+    document.getElementById('bestCard').style.display='';
+  }else document.getElementById('bestCard').style.display='none';
+  allMarkets=d.markets||[];osmMandis=d.nearby_osm||[];visAll=8;visGovt=8;
+  document.getElementById('tabLocalCount').textContent=osmMandis.length;
+  document.getElementById('tabAllCount').textContent=allMarkets.filter(m=>m.is_nearby).length;
+  document.getElementById('tabGovtCount').textContent=allMarkets.length;
+  renderOSMList();renderMarkets('all');renderMarkets('govt');switchTab('local');
+  document.getElementById('results').style.display='block';
+}
+
+function renderOSMList(){
+  const el=document.getElementById('nearbyList');
+  if(!osmMandis.length){el.innerHTML='<div style="color:var(--text-muted);font-size:.84rem;padding:16px;text-align:center;">No nearby mandis found via OSM. OpenStreetMap data may be sparse in your area.</div>';return;}
+  el.innerHTML=osmMandis.map((m,i)=>`
+    <div class="nearby-row ${i===0?'top-row':''}">
+      <div class="nr-left">
+        <div class="nr-rank ${i===0?'gold':''}">${i+1}</div>
+        <div><div class="nr-name">${m.name}</div><div class="nr-type">${m.address||m.type||'Mandi'}</div></div>
+      </div>
+      <span class="nr-dist">${m.distance_km} km</span>
+    </div>`).join('');
+}
+
+function renderMarkets(type){
+  const isAll=type==='all';
+  const listEl=document.getElementById(isAll?'marketListAll':'marketListGovt');
+  const btnEl=document.getElementById(isAll?'showMoreAll':'showMoreGovt');
+  const vis=isAll?visAll:visGovt;
+  const shown=allMarkets.slice(0,vis);
+  listEl.innerHTML=shown.map((m,i)=>{
+    const up=m.change_pct>=0;
+    const cls=i===0?'best-row':m.is_nearby?'local-row':'';
+    const tag=m.is_nearby?`<span class="local-tag">📍 Near You</span>`:'';
+    return `<div class="mkt-row ${cls}">
+      <div><div class="mkt-name">${i===0?'🏆 ':''}${m.market}${tag}</div><div class="mkt-dist">${[m.district,m.state].filter(Boolean).join(' · ')}</div></div>
+      <div class="mkt-curr">₹${fmt(m.current_price)}</div>
+      <div class="mkt-pill ${up?'up':'dn'}">${up?'▲':'▼'} ₹${fmt(m.predicted_price)}</div>
+    </div>`;
+  }).join('');
+  if(allMarkets.length>vis){btnEl.style.display='block';btnEl.textContent=`▼ Show ${allMarkets.length-vis} more markets`;}
+  else btnEl.style.display='none';
+}
+
+function showMore(type){if(type==='all')visAll+=10;else visGovt+=10;renderMarkets(type);}
+function switchTab(tab){
+  activeTab=tab;
+  ['local','all','govt'].forEach(t=>{
+    document.getElementById('tab'+cap(t)).classList.toggle('active',t===tab);
+    document.getElementById('panel'+cap(t)).classList.toggle('active',t===tab);
+  });
+}
+function cap(s){return s.charAt(0).toUpperCase()+s.slice(1);}
+
+// ══ CHART ══
+function drawTrend(trend,current,predicted){
+  const svg=document.getElementById('trendSvg');
+  if(!trend||!trend.length){svg.innerHTML='';return;}
+  const W=700,H=140,p={t:14,r:24,b:24,l:52};
+  const pts=[...trend,{i:trend.length,price:predicted}];
+  const pr=pts.map(x=>x.price);
+  const mn=Math.min(...pr)*.97,mx=Math.max(...pr)*1.03;
+  const xs=i=>p.l+(i/(pts.length-1))*(W-p.l-p.r);
+  const ys=v=>p.t+(1-(v-mn)/(mx-mn))*(H-p.t-p.b);
+  const ap=`M ${xs(0)},${H-p.b} L ${trend.map((x,i)=>`${xs(i)},${ys(x.price)}`).join(' L ')} L ${xs(trend.length-1)},${H-p.b} Z`;
+  const lp=trend.map((x,i)=>`${i===0?'M':'L'} ${xs(i)},${ys(x.price)}`).join(' ');
+  const pp=`M ${xs(trend.length-1)},${ys(trend[trend.length-1].price)} L ${xs(pts.length-1)},${ys(predicted)}`;
+  const gv=[mn,(mn+mx)/2,mx];
+  const gr=gv.map(v=>`<line x1="${p.l}" y1="${ys(v)}" x2="${W-p.r}" y2="${ys(v)}" stroke="rgba(52,211,153,.08)" stroke-width="1"/>`).join('');
+  const yl=gv.map(v=>`<text x="${p.l-5}" y="${ys(v)+4}" fill="rgba(52,211,153,.4)" font-size="9" font-family="Space Mono" text-anchor="end">₹${Math.round(v)}</text>`).join('');
+  svg.innerHTML=`<defs>
+    <linearGradient id="ag" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="rgba(52,211,153,0.2)"/>
+      <stop offset="100%" stop-color="rgba(52,211,153,0)"/>
+    </linearGradient>
+  </defs>
+  ${gr}${yl}
+  <path d="${ap}" fill="url(#ag)"/>
+  <path d="${lp}" fill="none" stroke="#34d399" stroke-width="2.5" stroke-linejoin="round"/>
+  <path d="${pp}" fill="none" stroke="#f59e0b" stroke-width="2.5" stroke-dasharray="6,4"/>
+  <circle cx="${xs(trend.length-1)}" cy="${ys(current)}" r="5" fill="#34d399" stroke="rgba(52,211,153,.3)" stroke-width="4"/>
+  <circle cx="${xs(pts.length-1)}" cy="${ys(predicted)}" r="5" fill="#f59e0b" stroke="rgba(245,158,11,.3)" stroke-width="4"/>
+  <text x="${xs(pts.length-1)+9}" y="${ys(predicted)+4}" fill="#f59e0b" font-size="9" font-family="Space Mono">predicted</text>
+  <text x="${xs(trend.length-1)+9}" y="${ys(current)-6}" fill="#34d399" font-size="9" font-family="Space Mono">current</text>`;
+}
+
+// ══ UTILS ══
+function setLoading(on){document.getElementById('loading').classList.toggle('active',on);document.getElementById('searchBtn').disabled=on;}
+function hideResults(){document.getElementById('results').style.display='none';}
+function showErr(msg){document.getElementById('errMsg').textContent=msg;document.getElementById('errCard').classList.add('active');}
+function clearErr(){document.getElementById('errCard').classList.remove('active');}
+
+// ══ LANG ══
+const T={
+  en:{fabTip:'Ask Kisan AI',welcome:"👋 Hello! I'm Kisan AI.\n\nAsk me anything about farming — crops, soil, weather, pests, government schemes.",chips:['🌾 Crop disease','💧 Irrigation tips','🧪 When to fertilize','💰 PM Kisan scheme'],placeholder:'Ask anything about farming…',errMsg:'⚠️ Could not connect to AI. Check your network.',noReply:'Sorry, no response received.'},
+  hi:{fabTip:'किसान AI से पूछें',welcome:'🙏 नमस्ते किसान भाई!\n\nखेती से जुड़ा कोई भी सवाल पूछें।',chips:['🌾 फसल में रोग','💧 सिंचाई की सलाह','🧪 खाद कब डालें','💰 PM Kisan योजना'],placeholder:'कोई भी सवाल पूछें…',errMsg:'⚠️ AI से कनेक्शन नहीं हुआ। Network check करें।',noReply:'माफ़ करें, जवाब नहीं मिला।'}
+};
+let lang='en',chatOpen=false,busy=false,hist=[];
+const SYS=`You are Kisan AI, a friendly farming assistant for Indian farmers. Reply in simple Hindi or English — match the language the farmer uses. Keep answers short in about 1 to 2 line, warm, and practical. Use bullet points for steps. Topics: crops, soil, pests, fertilizer, irrigation, weather, mandi prices, government schemes. Never use complex jargon. Address farmers as "किसान भाई" in Hindi.`;
+
+function setLang(l){lang=l;document.getElementById('btn-en').classList.toggle('active',l==='en');document.getElementById('btn-hi').classList.toggle('active',l==='hi');document.documentElement.lang=l==='hi'?'hi':'en';document.querySelectorAll('[data-en]').forEach(el=>el.textContent=el.getAttribute('data-'+l));document.getElementById('fab').setAttribute('data-tip',T[l].fabTip);document.getElementById('cinput').placeholder=T[l].placeholder;document.getElementById('cerr').innerHTML=T[l].errMsg;const c=document.getElementById('chips');if(c.style.display!=='none')buildChips();}
+function buildChips(){document.getElementById('chips').innerHTML=T[lang].chips.map(c=>`<span class="chip" onclick="useChip(this)">${c}</span>`).join('');}
+function toggleChat(){chatOpen=!chatOpen;document.getElementById('chatbox').classList.toggle('on',chatOpen);document.getElementById('fab').classList.toggle('on',chatOpen);if(chatOpen){scrollDown();setTimeout(()=>document.getElementById('cinput').focus(),300);}}
+document.addEventListener('DOMContentLoaded',()=>{document.getElementById('cinput').placeholder=T[lang].placeholder;document.getElementById('cerr').innerHTML=T[lang].errMsg;buildChips();addBot(T[lang].welcome);});
+function useChip(el){document.getElementById('cinput').value=el.textContent.trim();document.getElementById('chips').style.display='none';sendMsg();}
+function onkey(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMsg();}}
+function rsz(el){el.style.height='auto';el.style.height=Math.min(el.scrollHeight,90)+'px';}
+async function sendMsg(){
+  const inp=document.getElementById('cinput'),txt=inp.value.trim();
+  if(!txt||busy)return;inp.value='';inp.style.height='auto';
+  document.getElementById('chips').style.display='none';document.getElementById('cerr').style.display='none';document.getElementById('csend').disabled=true;busy=true;
+  addUser(txt);hist.push({role:'user',content:txt});showTyping();
+  try{const r=await fetch('/api/dashboard-chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({messages:[{role:'system',content:SYS},...hist]})});if(!r.ok)throw 0;const d=await r.json();if(d.error)throw 0;const rep=(d.choices||[{}])[0]?.message?.content||T[lang].noReply;hist.push({role:'assistant',content:rep});hideTyping();addBot(rep);}
+  catch{hideTyping();document.getElementById('cerr').style.display='block';}
+  finally{busy=false;document.getElementById('csend').disabled=false;document.getElementById('cinput').focus();}
+}
+function addUser(t){msgs().insertAdjacentHTML('beforeend',`<div class="m u"><div class="m-av">👨‍🌾</div><div class="bubble">${esc(t)}</div></div>`);scrollDown();}
+function addBot(t){msgs().insertAdjacentHTML('beforeend',`<div class="m b"><div class="m-av b">🤖</div><div class="bubble">${esc(t).replace(/\n/g,'<br>')}</div></div>`);scrollDown();}
+function showTyping(){const el=document.createElement('div');el.className='m b';el.id='typ';el.innerHTML='<div class="m-av b">🤖</div><div class="bubble"><div class="dots"><span></span><span></span><span></span></div></div>';msgs().appendChild(el);scrollDown();}
+function hideTyping(){document.getElementById('typ')?.remove();}
+function msgs(){return document.getElementById('msgs');}
+function scrollDown(){const m=msgs();setTimeout(()=>m.scrollTop=m.scrollHeight,60);}
+function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+</script>
+</body>
+</html>
